@@ -14,4 +14,12 @@ void panic_spin(char*,int,const char*,const char*);
   }
 #endif
 
+#define debug_print_int(str,num) \
+  do{\
+    put_str(str);\
+    put_int(num);\
+    put_str("\n");\
+  } \
+  while(0)
+
 #endif

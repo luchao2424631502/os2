@@ -39,6 +39,19 @@ SECTION MBR vstart=0x7c00
     mov byte [gs:0x08],'R'
     mov byte [gs:0x09],0xA4
 
+;graphics:------ 
+;定义保存数据的位置
+CYLS  equ   0x0ff0  ;启动区
+LEDS  equ   0x0ff1  ;键盘LED状态
+VMODE equ   0x0ff2  ;颜色数目信息
+SCRNX equ   0x0ff4  ;分辨率 x
+SCRNY equ   0x0ff6  ;分辨率 y
+VRAM  equ   0x0ff8  ;图像缓冲区开始的地址
+;开启VGA模式
+    mov al,0x13     ;VGA 320*200*8
+    mov ah,0x00
+    int 0x10
+;graphics:------
 
 ;
     mov eax,LOADER_START_SECTOR
