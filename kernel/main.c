@@ -9,6 +9,7 @@
 #include "ioqueue.h"
 
 #include "process.h"
+#include "string.h"
 
 void k_thread_a(void *);
 void k_thread_b(void *);
@@ -16,6 +17,7 @@ void k_thread_b(void *);
 void u_prog_a();
 void u_prog_b();
 int test_var_a = 0,test_var_b = 0;
+
 
 int main()
 {

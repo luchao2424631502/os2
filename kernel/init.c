@@ -7,6 +7,7 @@
 #include "console.h"
 #include "keyboard.h"
 #include "tss.h"
+#include "graphics.h"
 
 void init_all()
 {
@@ -28,4 +29,7 @@ void init_all()
 
   // 4/10 测试tss 
   tss_init();
+
+  // 4/22 graphics部分
+  graphics_init();
 }

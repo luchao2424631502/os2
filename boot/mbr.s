@@ -48,9 +48,20 @@ SCRNX equ   0x0ff4  ;分辨率 x
 SCRNY equ   0x0ff6  ;分辨率 y
 VRAM  equ   0x0ff8  ;图像缓冲区开始的地址
 ;开启VGA模式
-    ; mov al,0x13     ;VGA 320*200*8
-    ; mov ah,0x00
-    ; int 0x10
+    mov al,0x13     ;VGA 320*200*8
+    mov ah,0x00
+    int 0x10
+
+    mov byte [VMODE],8
+    mov word [SCRNX],320
+    mov word [SCRNY],200
+    mov dword [VRAM],0x000a0000 ;
+
+;通过bios取得
+    mov ah,0x02
+    int 0x16
+    mov [LEDS],al
+
 ;graphics:------
 
 ;

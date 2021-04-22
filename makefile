@@ -3,7 +3,7 @@ ENTRY_POINT=0xc0001500
 AS				 =nasm
 CC  			 =gcc
 LD 				 =ld
-INCLUDE		 =-I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/
+INCLUDE		 =-I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/ -I graphics/include
 ASFLAGS    =-f elf
 CFLAGS     =-Wall $(INCLUDE) -c -m32 -fno-builtin -fno-stack-protector -W #-Wmissing-prototypes -Wstrict-prototypes
 #Wall 和 W 是警告信息,Wstrict-prototypes:函数声明需要指出参数类型  Wmissing-prototypes:没有预先声明函数旧定义全局函数将警告
@@ -14,6 +14,8 @@ OBJS       =$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o $(B
 						$(BUILD_DIR)/kernel.o $(BUILD_DIR)/print.o $(BUILD_DIR)/switch.o $(BUILD_DIR)/sync.o\
 						$(BUILD_DIR)/console.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/ioqueue.o\
 						$(BUILD_DIR)/tss.o $(BUILD_DIR)/process.o
+GRAPHOBJS	 =$(BUILD_DIR)/graphics.o $(BUILD_DIR)/vramio.o
+
 BOOTLOADER = $(BUILD_DIR)/mbr.bin $(BUILD_DIR)/loader.bin
 # ---- boot + loader ----
 $(BUILD_DIR)/mbr.bin: boot/mbr.s
@@ -21,7 +23,7 @@ $(BUILD_DIR)/mbr.bin: boot/mbr.s
 
 $(BUILD_DIR)/loader.bin: boot/loader.s
 	$(AS) -Iboot/include/ $< -o $@
-# ---- C文件编译 -----
+# ---- kernel C文件编译 -----
 $(BUILD_DIR)/main.o:kernel/main.c
 	$(CC) $(CFLAGS) $< -o $@
 
@@ -80,8 +82,15 @@ $(BUILD_DIR)/print.o:lib/kernel/print.s
 $(BUILD_DIR)/switch.o:thread/switch.s
 	$(AS) $(ASFLAGS) $< -o $@
 
+#---- graphics C文件编译
+$(BUILD_DIR)/graphics.o:graphics/graphics.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/vramio.o:graphics/vramio.c
+	$(CC) $(CFLAGS) $< -o $@
+
 #---- 链接所有的目标文件生成OS内存镜像 ----
-$(BUILD_DIR)/kernel.bin:$(OBJS)
+$(BUILD_DIR)/kernel.bin:$(OBJS) $(GRAPHOBJS)
 	$(LD) $(LDFLAGS) $^ -o $@
 
 #伪目标
