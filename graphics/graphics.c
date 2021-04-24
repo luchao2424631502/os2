@@ -2,36 +2,25 @@
 #include "string.h"
 #include "interrupt.h"
 #include "io.h"
+#include "debug.h"
+
+#include "font.h"
+#include "paint.h"
 
 static void init_palette();
 static void set_palette(int,int,unsigned char *);
 static void desktop_init();
+static void screen_init();
 
-/*填充一个矩形区域
- * vram:vram 虚拟地址
- * xwidth: 需要填充矩形的宽度(x1-x0)
- * c:填充的颜色(index)
- * x0,y0:左上角地址
- * x1,y1:右下角地址
- * */
-void boxfill8(uint8_t *vram,int xwidth,uint8_t c,
-              int x0,int y0,int x1,int y1)
+static void screen_init(uint8_t *vram_,uint32_t x,uint32_t y)
 {
-  for (int y=y0; y<=y1; y++)
-  {
-    for (int x=x0; x<=x1; x++)
-    {
-      vram[y*xwidth+x] = c;
-    }
-  }
-}
-
-/*桌面初始化*/
-static void desktop_init()
-{
+  // uint32_t xsize = x;
+  // uint32_t ysize = y;
+  // uint8_t *vram = vram_;
+  
   uint32_t xsize = Width_320;
   uint32_t ysize = Length_200;
-  uint8_t *vram = (uint8_t *)VGA_START_V; 
+  uint8_t *vram = (uint8_t *)VGA_START_V;
 
   /*画横线和填充dock任务栏(矩形)*/
   boxfill8(vram,xsize,COL8_008484,0     ,0       ,xsize-1  ,ysize-29);//亮蓝填充上部分
@@ -52,20 +41,41 @@ static void desktop_init()
   boxfill8(vram,xsize,COL8_848484,xsize-47 ,ysize-23  ,xsize-47  ,ysize-4 );//右矩左暗灰边
   boxfill8(vram,xsize,COL8_ffffff,xsize-47 ,ysize-3   ,xsize-4   ,ysize-3 );//右矩下白边
   boxfill8(vram,xsize,COL8_ffffff,xsize-3  ,ysize-24  ,xsize-3   ,ysize-3 );//右矩右白边
+
+  for (int i=0; i<12; i++)
+    putfont8(vram,xsize,0,i*16,COL8_ff0000,font_A);
+
+  putfont8(vram,xsize,8,0,COL8_ffff00 ,font_vaddr(' '));
+  putfont8(vram,xsize,16,0,COL8_ffff00,font_vaddr('H'));
+  putfont8(vram,xsize,24,0,COL8_ffff00,font_vaddr('e'));
+  putfont8(vram,xsize,32,0,COL8_ffff00,font_vaddr('l'));
+  putfont8(vram,xsize,40,0,COL8_ffff00,font_vaddr('l'));
+  putfont8(vram,xsize,48,0,COL8_ffff00,font_vaddr('o'));
+  putfont8(vram,xsize,56,0,COL8_ffff00,font_vaddr('!'));
+  putfont8(vram,xsize,64,0,COL8_ffff00,font_vaddr('!'));
+
+}
+
+/*桌面初始化*/
+static void desktop_init()
+{
+  /*拿到mbr中填写的信息(不必要)
+   *等有debug时来调试boot_info中的值,不知道为什么不对劲
+   * */
+  struct BOOT_INFO *boot_info = (struct BOOT_INFO*)0x0ff0;
+  screen_init(boot_info->vram,boot_info->scrnx,boot_info->scrny);
 }
 
 void graphics_init()
 {
   /*初始化调色板*/
   init_palette();
+
+  /*根据hankaku.txt制作字库*/
+  make_font(); 
+
   /*桌面基本元素初始化*/
   desktop_init();
-
-  // int vga_start = VGA_START_V;
-  // uint8_t *p = (uint8_t *)vga_start;
-  // boxfill8(p,320,COL8_008484,20,20,120,120); //亮红
-  // boxfill8(p,320,COL8_848484,70,50,170,150); //亮绿
-  // boxfill8(p,320,COL8_c6c6c6,120,80,220,180);//
 }
 
 /*初始化调色板,支持16种颜色*/

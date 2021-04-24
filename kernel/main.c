@@ -18,11 +18,23 @@ void u_prog_a();
 void u_prog_b();
 int test_var_a = 0,test_var_b = 0;
 
+extern uint8_t _binary_graphics_1_in_start[];
+extern uint8_t _binary_graphics_1_in_end[];
+extern uint8_t _binary_graphics_1_in_size[];
 
 int main()
 {
   put_str("I'm kernel\n");
   init_all();
+
+
+  debug_print_int("start=",(uint32_t)_binary_graphics_1_in_start);
+  debug_print_int("end=",(uint32_t)_binary_graphics_1_in_end);
+  debug_print_int("size=",(uint32_t)_binary_graphics_1_in_size);
+
+  uint8_t *point = (uint8_t *)0xc00091c0;
+  debug_print_int("off_set_0x12=",(uint8_t)*(point+0x12));
+  debug_print_int("off_set_0x13=",(uint8_t)*(point+0x13));
 
   /*
   thread_start("k_thread_a",31,k_thread_a,"argA ");

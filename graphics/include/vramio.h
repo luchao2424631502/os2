@@ -1,5 +1,5 @@
-#ifndef __GRAPHICS_VRAMIO_H
-#define __GRAPHICS_VRAMIO_H
+#ifndef __GRAPHICS_INCLUDE_VRAMIO_H
+#define __GRAPHICS_INCLUDE_VRAMIO_H
 
 #include "stdint.h"
 

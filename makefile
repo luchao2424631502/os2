@@ -14,7 +14,9 @@ OBJS       =$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o $(B
 						$(BUILD_DIR)/kernel.o $(BUILD_DIR)/print.o $(BUILD_DIR)/switch.o $(BUILD_DIR)/sync.o\
 						$(BUILD_DIR)/console.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/ioqueue.o\
 						$(BUILD_DIR)/tss.o $(BUILD_DIR)/process.o
-GRAPHOBJS	 =$(BUILD_DIR)/graphics.o $(BUILD_DIR)/vramio.o
+GRAPHOBJS	 =$(BUILD_DIR)/graphics.o $(BUILD_DIR)/vramio.o $(BUILD_DIR)/font.o\
+						$(BUILD_DIR)/font_binary.o\
+						$(BUILD_DIR)/paint.o\
 
 BOOTLOADER = $(BUILD_DIR)/mbr.bin $(BUILD_DIR)/loader.bin
 # ---- boot + loader ----
@@ -87,6 +89,15 @@ $(BUILD_DIR)/graphics.o:graphics/graphics.c
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/vramio.o:graphics/vramio.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/font.o:graphics/font.c graphics/1.in
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/font_binary.o:graphics/1.in
+	objcopy -I binary -O elf32-i386 -B i386 $< $@ 
+
+$(BUILD_DIR)/paint.o:graphics/paint.c
 	$(CC) $(CFLAGS) $< -o $@
 
 #---- 链接所有的目标文件生成OS内存镜像 ----

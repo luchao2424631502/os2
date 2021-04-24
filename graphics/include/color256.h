@@ -1,5 +1,5 @@
-#ifndef __GRAPHICS_COLOR256_H
-#define __GRAPHICS_COLOR256_H
+#ifndef __GRAPHICS_INCLUDE_COLOR256_H
+#define __GRAPHICS_INCLUDE_COLOR256_H
 
 /*调色板颜色索引index*/
 #define COL8_000000   0//黑色

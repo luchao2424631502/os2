@@ -55,7 +55,7 @@ VRAM  equ   0x0ff8  ;图像缓冲区开始的地址
     mov byte [VMODE],8
     mov word [SCRNX],320
     mov word [SCRNY],200
-    mov dword [VRAM],0x000a0000 ;
+    mov dword [VRAM],0xc00a0000 ;
 
 ;通过bios取得
     mov ah,0x02
