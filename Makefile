@@ -5,7 +5,7 @@ CC  			 =gcc
 LD 				 =ld
 INCLUDE		 =-I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/ -I graphics/include
 ASFLAGS    =-f elf
-CFLAGS     =-Wall $(INCLUDE) -c -m32 -fno-builtin -fno-stack-protector -W #-Wmissing-prototypes -Wstrict-prototypes
+CFLAGS     =-Wall $(INCLUDE) -c -m32 -fno-builtin -fno-stack-protector -W #-Wno-unused-variable -Wmissing-prototypes -Wstrict-prototypes
 #Wall 和 W 是警告信息,Wstrict-prototypes:函数声明需要指出参数类型  Wmissing-prototypes:没有预先声明函数旧定义全局函数将警告
 LDFLAGS    =-Ttext $(ENTRY_POINT) -e main -m elf_i386 -Map $(BUILD_DIR)/kernel.map
 OBJS       =$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o $(BUILD_DIR)/timer.o\
@@ -16,7 +16,7 @@ OBJS       =$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o $(B
 						$(BUILD_DIR)/tss.o $(BUILD_DIR)/process.o
 GRAPHOBJS	 =$(BUILD_DIR)/graphics.o $(BUILD_DIR)/vramio.o $(BUILD_DIR)/font.o\
 						$(BUILD_DIR)/font_binary.o\
-						$(BUILD_DIR)/paint.o\
+						$(BUILD_DIR)/paint.o $(BUILD_DIR)/mouse.o
 
 BOOTLOADER = $(BUILD_DIR)/mbr.bin $(BUILD_DIR)/loader.bin
 # ---- boot + loader ----
@@ -84,7 +84,7 @@ $(BUILD_DIR)/print.o:lib/kernel/print.s
 $(BUILD_DIR)/switch.o:thread/switch.s
 	$(AS) $(ASFLAGS) $< -o $@
 
-#---- graphics C文件编译
+#---- graphics C文件编译----
 $(BUILD_DIR)/graphics.o:graphics/graphics.c
 	$(CC) $(CFLAGS) $< -o $@
 
@@ -98,6 +98,9 @@ $(BUILD_DIR)/font_binary.o:graphics/1.in
 	objcopy -I binary -O elf32-i386 -B i386 $< $@ 
 
 $(BUILD_DIR)/paint.o:graphics/paint.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/mouse.o:graphics/mouse.c
 	$(CC) $(CFLAGS) $< -o $@
 
 #---- 链接所有的目标文件生成OS内存镜像 ----

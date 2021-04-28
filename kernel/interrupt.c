@@ -45,16 +45,20 @@ static void pic_init()
   outb(PIC_S_DATA,0x01); //ICW4: 正常EOI
 
   //打开主片IR0的时钟中断
-  outb(PIC_M_DATA,0xfe);
-  outb(PIC_S_DATA,0xff);
+  // outb(PIC_M_DATA,0xfe);
+  // outb(PIC_S_DATA,0xff);
 
   //打开键盘中断
   //outb(PIC_M_DATA,0xfd);
   //outb(PIC_S_DATA,0xff);
 
-  //同时打开键盘中断和时钟中断
-  //outb(PIC_M_DATA,0xfc);
-  //outb(PIC_S_DATA,0xff);
+  //同时打开键盘中断和时钟中断,+ps/2鼠标中断
+  // outb(PIC_M_DATA,0xfc);
+  // outb(PIC_S_DATA,0xef);
+
+  //测试:打开键盘中断+irq2+鼠标中断
+  outb(PIC_M_DATA,0xf9);
+  outb(PIC_S_DATA,0xef);
 
   put_str("    pic_init done\n");
 }

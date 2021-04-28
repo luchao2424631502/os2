@@ -8,6 +8,7 @@
 #include "keyboard.h"
 #include "tss.h"
 #include "graphics.h"
+#include "mouse.h"
 
 void init_all()
 {
@@ -29,6 +30,9 @@ void init_all()
 
   // 4/10 测试tss 
   tss_init();
+
+  // 4/25 graphics下mouse初始化(添加中断处理程序
+  mouse_init();
 
   // 4/22 graphics部分
   graphics_init();

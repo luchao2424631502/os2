@@ -2,7 +2,7 @@
 %include "boot.inc"
 section loader vstart=LOADER_BASE_ADDR
 
-;GDT表的定义
+;GDT表的定义,物理地址:0x900
 GDT_BASE:
 	dd 0x00000000
 	dd 0x00000000
@@ -127,6 +127,23 @@ p_mode_start:
 	mov esp,LOADER_STACK_TOP
 	mov ax,SELECTOR_VIDEO
 	mov gs,ax
+;---- graphics 2021-4-25 ----
+CYLS  equ 0x0ff0  ;启动区
+LEDS  equ 0x0ff1  ;键盘led状态
+VMODE equ 0x0ff2  ;颜色数目信息
+SCRNX equ 0x0ff4  ;分辨率的X
+SCRNY equ 0x0ff6  ;分辨率的Y
+VRAM  equ 0x0ff8  ;vram起始地址
+  mov byte [VMODE],8
+  mov word [SCRNX],320
+  mov word [SCRNY],200
+  mov dword [VRAM],0xc00a0000
+
+  ; mov ah,0x02
+  ; int 0x16
+  ; mov [LEDS],al
+
+;---- graphics ----
 
 ;2021-3-8: 在分页开启前把elf格式的内核加载到0x70000
 	mov eax,KERNEL_START_SECTOR
@@ -134,6 +151,7 @@ p_mode_start:
 	mov ecx,200
 	call rd_disk_m_32
 
+;创建分页需要的页目录和页表
 	call setup_page
 
 	sgdt [gdt_ptr]

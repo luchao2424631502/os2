@@ -24,7 +24,8 @@ extern uint8_t _binary_graphics_1_in_size[];
 
 int main()
 {
-  put_str("I'm kernel\n");
+  // put_str("I'm kernel\n");
+  /*graphics模块现在位于内核主线程中,*/
   init_all();
 
 
@@ -35,6 +36,9 @@ int main()
   uint8_t *point = (uint8_t *)0xc00091c0;
   debug_print_int("off_set_0x12=",(uint8_t)*(point+0x12));
   debug_print_int("off_set_0x13=",(uint8_t)*(point+0x13));
+  put_int(99);
+  put_char('\n');
+  put_int(-12);
 
   /*
   thread_start("k_thread_a",31,k_thread_a,"argA ");

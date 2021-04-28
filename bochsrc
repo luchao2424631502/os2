@@ -11,6 +11,7 @@ ata0-master: type=disk, path="hd60M.img", mode=flat, cylinders=121, heads=16, sp
 
 log: tmp/bochsout.txt
 
-mouse: enabled=0
+#2021/4/25 开启ps/2鼠标支持
+mouse: enabled=1
 #keyboard_mapping: enabled=1, map=/usr/local/share/bochs/keymaps/x11-pc-us.map
 keyboard: keymap=/usr/share/bochs/keymaps/x11-pc-us.map

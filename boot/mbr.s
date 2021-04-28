@@ -40,27 +40,13 @@ SECTION MBR vstart=0x7c00
     mov byte [gs:0x09],0xA4
 
 ;graphics:------ 
-;定义保存数据的位置
-CYLS  equ   0x0ff0  ;启动区
-LEDS  equ   0x0ff1  ;键盘LED状态
-VMODE equ   0x0ff2  ;颜色数目信息
-SCRNX equ   0x0ff4  ;分辨率 x
-SCRNY equ   0x0ff6  ;分辨率 y
-VRAM  equ   0x0ff8  ;图像缓冲区开始的地址
+;定义保存数据的位置,
+;为什么我们没有在后面接收到,因为现在位于实模式下,寻址模式是cs*16+ip
+;
 ;开启VGA模式
     mov al,0x13     ;VGA 320*200*8
     mov ah,0x00
     int 0x10
-
-    mov byte [VMODE],8
-    mov word [SCRNX],320
-    mov word [SCRNY],200
-    mov dword [VRAM],0xc00a0000 ;
-
-;通过bios取得
-    mov ah,0x02
-    int 0x16
-    mov [LEDS],al
 
 ;graphics:------
 

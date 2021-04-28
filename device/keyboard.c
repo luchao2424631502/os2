@@ -5,6 +5,12 @@
 #include "global.h"
 #include "ioqueue.h"
 
+#include "graphics.h"
+#include "paint.h"
+#include "color256.h"
+#include "font.h"
+#include "mouse.h"
+
 #define KBD_BUF_PORT 0x60
 
 /*ascii 可控制字符*/
@@ -107,11 +113,13 @@ static bool ext_scancode;
 /*键盘中断处理程序*/
 static void intr_keyboard_handler()
 {
+
   bool ctrl_down_last = ctrl_status;
   bool shift_down_last = shift_status;
   bool caps_lock_last = caps_lock_status;
 
   bool break_code;
+  /*make code只有8byte,但是要对上一次做操作,所以声明为2byte*/
   uint16_t scancode = inb(KBD_BUF_PORT);
 
   if (scancode == 0xe0)
@@ -190,6 +198,10 @@ static void intr_keyboard_handler()
     uint8_t index = (scancode &= 0x00ff);
     char cur_char = keymap[index][shift];
 
+    //在graphics下测试键盘中断是否发生
+    struct BOOT_INFO *bootinfo = (struct BOOT_INFO*)(0xc0000ff0);
+    boxfill8(bootinfo->vram,bootinfo->scrnx,COL8_000000,0,0,32*8-1,15);
+    putfont8_str(bootinfo->vram,bootinfo->scrnx,0,0,COL8_ffffff,&cur_char);
     /*ascii != 0*/
     if (cur_char)
     {
@@ -205,6 +217,7 @@ static void intr_keyboard_handler()
         //测试ioqueue 此处put_char打印
         put_char(cur_char);
         ioq_putchar(&kbd_buf,cur_char);
+
       }
       return ;
     }

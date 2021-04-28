@@ -6,73 +6,17 @@
 
 #include "font.h"
 #include "paint.h"
+#include "mouse.h"
 
 static void init_palette();
 static void set_palette(int,int,unsigned char *);
 static void desktop_init();
 static void screen_init();
 
-static void screen_init(uint8_t *vram_,uint32_t x,uint32_t y)
-{
-  // uint32_t xsize = x;
-  // uint32_t ysize = y;
-  // uint8_t *vram = vram_;
-  
-  uint32_t xsize = Width_320;
-  uint32_t ysize = Length_200;
-  uint8_t *vram = (uint8_t *)VGA_START_V;
-
-  /*画横线和填充dock任务栏(矩形)*/
-  boxfill8(vram,xsize,COL8_008484,0     ,0       ,xsize-1  ,ysize-29);//亮蓝填充上部分
-  boxfill8(vram,xsize,COL8_c6c6c6,0     ,ysize-28,xsize-1  ,ysize-28);//下的一条亮灰线
-  boxfill8(vram,xsize,COL8_ffffff,0     ,ysize-27,xsize-1  ,ysize-27);//下一行来一条白线
-  boxfill8(vram,xsize,COL8_c6c6c6,0     ,ysize-26,xsize-1  ,ysize-1); //剩下的下面用亮灰色填满
-
-  /*画左下的矩形*/
-  boxfill8(vram,xsize,COL8_ffffff,3     ,ysize-24,59       ,ysize-24);//左矩的上白色边
-  boxfill8(vram,xsize,COL8_ffffff,2     ,ysize-24,2        ,ysize-4); //左矩的左白色边
-  boxfill8(vram,xsize,COL8_848484,3     ,ysize-4 ,59       ,ysize-4); //左矩的下暗灰边
-  boxfill8(vram,xsize,COL8_848484,59    ,ysize-24,59       ,ysize-4); //左矩的右暗灰边
-  boxfill8(vram,xsize,COL8_000000,2     ,ysize-3 ,59       ,ysize-3); //下暗灰边下+一条黑边
-  boxfill8(vram,xsize,COL8_000000,60    ,ysize-24,60       ,ysize-3); //右暗灰边+一条黑边
-
-  /*画右下的矩形*/
-  boxfill8(vram,xsize,COL8_848484,xsize-47 ,ysize-24  ,xsize-4   ,ysize-24);//右矩上暗灰边
-  boxfill8(vram,xsize,COL8_848484,xsize-47 ,ysize-23  ,xsize-47  ,ysize-4 );//右矩左暗灰边
-  boxfill8(vram,xsize,COL8_ffffff,xsize-47 ,ysize-3   ,xsize-4   ,ysize-3 );//右矩下白边
-  boxfill8(vram,xsize,COL8_ffffff,xsize-3  ,ysize-24  ,xsize-3   ,ysize-3 );//右矩右白边
-
-  for (int i=0; i<12; i++)
-    putfont8(vram,xsize,0,i*16,COL8_ff0000,font_A);
-
-  putfont8(vram,xsize,8,0,COL8_ffff00 ,font_vaddr(' '));
-  putfont8(vram,xsize,16,0,COL8_ffff00,font_vaddr('H'));
-  putfont8(vram,xsize,24,0,COL8_ffff00,font_vaddr('e'));
-  putfont8(vram,xsize,32,0,COL8_ffff00,font_vaddr('l'));
-  putfont8(vram,xsize,40,0,COL8_ffff00,font_vaddr('l'));
-  putfont8(vram,xsize,48,0,COL8_ffff00,font_vaddr('o'));
-  putfont8(vram,xsize,56,0,COL8_ffff00,font_vaddr('!'));
-  putfont8(vram,xsize,64,0,COL8_ffff00,font_vaddr('!'));
-
-}
-
-/*桌面初始化*/
-static void desktop_init()
-{
-  /*拿到mbr中填写的信息(不必要)
-   *等有debug时来调试boot_info中的值,不知道为什么不对劲
-   * */
-  struct BOOT_INFO *boot_info = (struct BOOT_INFO*)0x0ff0;
-  screen_init(boot_info->vram,boot_info->scrnx,boot_info->scrny);
-}
-
 void graphics_init()
 {
   /*初始化调色板*/
   init_palette();
-
-  /*根据hankaku.txt制作字库*/
-  make_font(); 
 
   /*桌面基本元素初始化*/
   desktop_init();
@@ -124,3 +68,66 @@ static void set_palette(int start,int end,unsigned char *rgb)
   //恢复中断
   intr_set_status(old_status);
 }
+
+/*桌面初始化*/
+static void desktop_init()
+{
+  /*拿到loader.s中填写的信息(填写成功)
+   * */
+  struct BOOT_INFO *boot_info = (struct BOOT_INFO*)0xc0000ff0;
+  screen_init(boot_info->vram,boot_info->scrnx,boot_info->scrny);
+}
+
+static void screen_init(uint8_t *vram_,uint32_t x,uint32_t y)
+{
+  uint32_t xsize = x;
+  uint32_t ysize = y;
+  uint8_t *vram = vram_;
+  
+  // uint32_t xsize = Width_320;
+  // uint32_t ysize = Length_200;
+  // uint8_t *vram = (uint8_t *)VGA_START_V;
+
+  /*画横线和填充dock任务栏(矩形)*/
+  boxfill8(vram,xsize,COL8_008484,0     ,0       ,xsize-1  ,ysize-29);//亮蓝填充上部分
+  boxfill8(vram,xsize,COL8_c6c6c6,0     ,ysize-28,xsize-1  ,ysize-28);//下的一条亮灰线
+  boxfill8(vram,xsize,COL8_ffffff,0     ,ysize-27,xsize-1  ,ysize-27);//下一行来一条白线
+  boxfill8(vram,xsize,COL8_c6c6c6,0     ,ysize-26,xsize-1  ,ysize-1); //剩下的下面用亮灰色填满
+
+  /*画左下的矩形*/
+  boxfill8(vram,xsize,COL8_ffffff,3     ,ysize-24,59       ,ysize-24);//左矩的上白色边
+  boxfill8(vram,xsize,COL8_ffffff,2     ,ysize-24,2        ,ysize-4); //左矩的左白色边
+  boxfill8(vram,xsize,COL8_848484,3     ,ysize-4 ,59       ,ysize-4); //左矩的下暗灰边
+  boxfill8(vram,xsize,COL8_848484,59    ,ysize-24,59       ,ysize-4); //左矩的右暗灰边
+  boxfill8(vram,xsize,COL8_000000,2     ,ysize-3 ,59       ,ysize-3); //下暗灰边下+一条黑边
+  boxfill8(vram,xsize,COL8_000000,60    ,ysize-24,60       ,ysize-3); //右暗灰边+一条黑边
+
+  /*画右下的矩形*/
+  boxfill8(vram,xsize,COL8_848484,xsize-47 ,ysize-24  ,xsize-4   ,ysize-24);//右矩上暗灰边
+  boxfill8(vram,xsize,COL8_848484,xsize-47 ,ysize-23  ,xsize-47  ,ysize-4 );//右矩左暗灰边
+  boxfill8(vram,xsize,COL8_ffffff,xsize-47 ,ysize-3   ,xsize-4   ,ysize-3 );//右矩下白边
+  boxfill8(vram,xsize,COL8_ffffff,xsize-3  ,ysize-24  ,xsize-3   ,ysize-3 );//右矩右白边
+
+  /*
+  putfont8(vram,xsize,8,0,COL8_ffff00 ,font_vaddr(' '));
+  putfont8(vram,xsize,16,0,COL8_ffff00,font_vaddr('H'));
+  putfont8(vram,xsize,24,0,COL8_ffff00,font_vaddr('e'));
+  putfont8(vram,xsize,32,0,COL8_ffff00,font_vaddr('l'));
+  putfont8(vram,xsize,40,0,COL8_ffff00,font_vaddr('l'));
+  putfont8(vram,xsize,48,0,COL8_ffff00,font_vaddr('o'));
+  putfont8(vram,xsize,56,0,COL8_ffff00,font_vaddr('!'));
+  putfont8(vram,xsize,64,0,COL8_ffff00,font_vaddr('!'));
+  */
+  putfont8_str(vram,xsize,160,0,COL8_00ffff,"LLC OS:Hello,World!");
+  
+  putfont8_int(vram,xsize,0,0,COL8_00ffff,(uint32_t)vram);
+  putfont8_int(vram,xsize,0,16,COL8_00ffff,x);
+
+  /*显示鼠标*/
+  char mcursor[256];
+  /*根据鼠标图像得到 像素颜色数组*/
+  init_mouse_cursor8(mcursor,BACKGROUND_COLOR);
+  /*将鼠标显示出来*/
+  putblock8(vram,xsize,16,16,150,90,mcursor,16);
+}
+
