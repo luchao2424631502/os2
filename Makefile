@@ -13,7 +13,8 @@ OBJS       =$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o $(B
 						$(BUILD_DIR)/thread.o $(BUILD_DIR)/list.o\
 						$(BUILD_DIR)/kernel.o $(BUILD_DIR)/print.o $(BUILD_DIR)/switch.o $(BUILD_DIR)/sync.o\
 						$(BUILD_DIR)/console.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/ioqueue.o\
-						$(BUILD_DIR)/tss.o $(BUILD_DIR)/process.o
+						$(BUILD_DIR)/tss.o $(BUILD_DIR)/process.o $(BUILD_DIR)/syscall.o\
+						$(BUILD_DIR)/syscall-init.o
 BOOTLOADER = $(BUILD_DIR)/mbr.bin $(BUILD_DIR)/loader.bin
 # ---- boot + loader ----
 $(BUILD_DIR)/mbr.bin: boot/mbr.s
@@ -68,6 +69,12 @@ $(BUILD_DIR)/tss.o:userprog/tss.c
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/process.o:userprog/process.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/syscall.o:lib/user/syscall.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/syscall-init.o:userprog/syscall-init.c
 	$(CC) $(CFLAGS) $< -o $@
 
 #---- ASM汇编文件编译 ----

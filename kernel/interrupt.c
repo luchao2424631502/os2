@@ -9,7 +9,14 @@
 #define PIC_S_CTRL 0xa0 //从片
 #define PIC_S_DATA 0xa1
 
-#define IDT_DESC_CNT 0x30 //支持的中断数量
+// #define IDT_DESC_CNT 0x30 //支持的中断数量
+
+/*2021-4-28:为了支持0x80中断,
+ * 所以增加中断数组大小到0x81
+ * syscall_handler表示0x80中断的处理函数 
+ * */
+#define IDT_DESC_CNT  0X81  
+extern uint32_t syscall_handler(void);
 
 #define EFLAGS_IF 0x00000200
 #define GET_EFLAGS(EFLAG_VAR) asm volatile ("pushfl; popl %0":"=g"(EFLAG_VAR))
@@ -45,16 +52,16 @@ static void pic_init()
   outb(PIC_S_DATA,0x01); //ICW4: 正常EOI
 
   //打开主片IR0的时钟中断
-  outb(PIC_M_DATA,0xfe);
-  outb(PIC_S_DATA,0xff);
+  // outb(PIC_M_DATA,0xfe);
+  // outb(PIC_S_DATA,0xff);
 
   //打开键盘中断
   //outb(PIC_M_DATA,0xfd);
   //outb(PIC_S_DATA,0xff);
 
   //同时打开键盘中断和时钟中断
-  //outb(PIC_M_DATA,0xfc);
-  //outb(PIC_S_DATA,0xff);
+  outb(PIC_M_DATA,0xfc);
+  outb(PIC_S_DATA,0xff);
 
   put_str("    pic_init done\n");
 }
@@ -77,6 +84,11 @@ static void idt_desc_init()
   {
     make_idt_desc(&idt[i],IDT_DESC_ATTR_DPL0,intr_entry_table[i]);
   }
+  /*2021-4-28:0x80中断实现系统调用,
+   * 描述符单独初始化,dpl=3,ring 3用户进程就能产生并使用0x80中断,
+   * 并且中断处理程序也不在intr_entry_table[]中,意思是栈操作自己重写
+   * */
+  make_idt_desc(&idt[0x80],IDT_DESC_ATTR_DPL3,syscall_handler);
   put_str("    idt_desc_init done\n");
 }
 
