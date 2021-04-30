@@ -6,10 +6,13 @@
 /*根据内核将系统调用的实现顺序
  *来在用户空间定义api的index顺序*/
 enum SYSCALL_NR{
-  SYS_GETPID
+  SYS_GETPID,
+  SYS_WRITE
 };
 
 /*用户空间api的函数声明*/
 uint32_t getpid(void);
+
+uint32_t write(char *str);
 
 #endif

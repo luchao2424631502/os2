@@ -11,6 +11,7 @@
 #include "process.h"
 #include "syscall.h"
 #include "syscall-init.h"
+#include "stdio.h"
 
 void k_thread_a(void *);
 void k_thread_b(void *);
@@ -51,9 +52,6 @@ void k_thread_a(void *arg)
   console_put_str(" thread_a_pid:0x");
   console_put_int(sys_getpid());
   console_put_char('\n');
-  console_put_str(" prog_a_pid:0x");
-  console_put_int(prog_a_pid);
-  console_put_char('\n');
   while (1) {}
 }
 
@@ -63,9 +61,6 @@ void k_thread_b(void *arg)
   console_put_str(" thread_b_pid:0x");
   console_put_int(sys_getpid());
   console_put_char('\n');
-  console_put_str(" prog_b_pid:0x");
-  console_put_int(prog_b_pid);
-  console_put_char('\n');
   while (1) {}
 }
 
@@ -74,12 +69,18 @@ void u_prog_a()
   /*为什么ring 3程序调用不了sys_getpid()?
    * 因为当前选择子调用分页中的Kernel描述符权限不够
    * */
-  prog_a_pid = getpid();
+  printf(" printf_prog_a_pid:0x%x\n",getpid());
   while (1) {}
 }
 
 void u_prog_b()
 {
-  prog_b_pid = getpid();
+  printf(" printf_prog_b_pid:0x%x\n",getpid());
+  printf("%s","---- This is test ----\n");
+  printf("%c",'h');
+  printf(" %d",-100);
+  printf(" %x",100);
+  printf("%c",'\n');
+  printf("%s","---- This is test ----\n");
   while (1) {}
 }

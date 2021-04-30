@@ -13,19 +13,23 @@
 
 ## 分支情况
 
- head
+ 									head
 
-​	|
+​										|
 
-master
+​									master
 
-​	|
+​										|
 
-[实现用户进程]->[vga]->[desktop]->[mouse]
+​								[实现系统调用]
 
-​																	|
+[实现用户进程]->
 
-​																graphics
+​								[vga]-->[desktop]-->[mouse]
+
+​																		|
+
+​																	graphics
 
 
 
@@ -54,6 +58,16 @@ master
 1. 向`syscall.h`中enum syscall_nr结构中添加新的子功能号,和用户空间函数声明
 2. 在`syscall.c`中实现用户函数接口(调用_syscallx()宏)
 3. 在`syscall-init.c`中实现调用函数,并且向`syscall_table`中注册
+
+## 添加printf功能 2021-4-30
+
+> 测试用户进程(ring 3)下都是靠内核线程来帮助打印,现在添加ring 3的打印功能
+
+1. 添加了简单的write系统调用
+2. 添加vsprintf()和itoa()函数
+3. 添加printf()
+
+
 
 
 

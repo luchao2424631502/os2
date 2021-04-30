@@ -3,7 +3,8 @@
 #include "syscall.h"
 #include "print.h"
 #include "thread.h"
-
+#include "console.h"
+#include "string.h"
 
 /*内核提供调用的函数个数*/
 #define SYSCALL_NR 32
@@ -19,6 +20,7 @@ void syscall_init()
 {
   put_str("[syscall_init] start\n");
   syscall_table[SYS_GETPID] = sys_getpid; 
+  syscall_table[SYS_WRITE]  = sys_write;
   put_str("[syscall_init] done\n");
 }
 
@@ -29,3 +31,12 @@ uint32_t sys_getpid()
 {
   return running_thread()->pid; 
 }
+
+/*API_1:简单版write 
+ * 向屏幕上输出一段字符串*/
+uint32_t sys_write(char *str)
+{
+  console_put_str(str);
+  return strlen(str);
+}
+
