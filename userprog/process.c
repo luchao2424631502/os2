@@ -113,6 +113,8 @@ void process_execute(void *filename,char *name)
   create_user_vaddr_bitmap(thread);
   thread_create(thread,start_process,filename);
   thread->pgdir = create_page_dir(); //用户进程独有的页目录表(虚拟地址空间)
+  /*2021-5-1:初始化mem_block_descs[]*/
+  block_desc_init(thread->u_block_desc);
 
   /*将用户进程加入到调度队列*/
   enum intr_status old_status = intr_disable();

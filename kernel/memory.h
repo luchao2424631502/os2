@@ -3,6 +3,7 @@
 
 #include "stdint.h"
 #include "bitmap.h"
+#include "list.h"
 
 /*虚拟内存池表示,2021/3/30:当前只有内核的虚拟内存池*/
 enum pool_flags{
@@ -27,6 +28,25 @@ struct virtual_addr
   uint32_t vaddr_start;       //进程虚拟地址起始地址
 };
 
+/*2021-5-1: 完善内存管理,添加arena结构*/
+/*mem_block:内存块*/
+struct mem_block
+{
+  struct list_elem free_elem;
+};
+
+/*内存块结构描述符*/
+struct mem_block_desc
+{
+  uint32_t block_size;    //内存块大小规格是7种中的那一种
+  uint32_t blocks_per_arena;//本arena中容纳此mem_block的数量
+  struct list free_list;       //所有arena中同规格mem_block的链表
+};
+
+/*内存块规模个数:
+ * 16 32 64 128 256 512 1024*/
+#define DESC_CNT      7
+
 /*全局变量,内核和用户的物理内存池*/
 extern struct pool kernel_pool,user_pool;
 
@@ -42,5 +62,9 @@ uint32_t addr_v2p(uint32_t);
 /*2021/4/16: 修改memory.c后添加的声明*/
 void *get_a_page(enum pool_flags,uint32_t);
 void *get_user_pages(uint32_t);
+
+/*2021-5-1: 完善内存管理,添加block_desc_init()))*/
+void block_desc_init(struct mem_block_desc *);
+void *sys_malloc(uint32_t);
 
 #endif

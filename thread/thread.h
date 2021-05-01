@@ -89,6 +89,8 @@ struct task_struct
   
   /*用户进程的虚拟地址空间*/
   struct virtual_addr userprog_vaddr;
+  /*2021-5-1: 添加每个用于进程的mem_block_desc[]*/
+  struct mem_block_desc u_block_desc[DESC_CNT];
   
   //魔数用来检测pcb栈边界
   uint32_t stack_magic;

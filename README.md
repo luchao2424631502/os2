@@ -67,7 +67,25 @@
 2. 添加vsprintf()和itoa()函数
 3. 添加printf()
 
+## 完善堆内存管理 2021-5-1
 
+使用arena结构管理小的内存块分配,支持7种大小的内存块,`16 32 64 128 256 412 1024`
+
+#### 添加mem_block,mem_block_desc,arena结构,
+
+> 内核空间 内存块描述符数组 定义在memory.c
+>
+> 用户空间 内存块描述符数组 定义在pcb中
+
+ #### 实现sys_malloc,(实现用户进程的堆内存管理)
+
+> 修改thread.h的pcb结构
+>
+> 在process.c中添加u_block_descs[]的初始化
+>
+> 添加2个地址转换函数:arena2block(),block2arena().
+
+最后从mem_block_desc.free_list中找到了mem_block,就会将mem_block填充为0,
 
 
 
