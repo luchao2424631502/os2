@@ -67,4 +67,15 @@ void *get_user_pages(uint32_t);
 void block_desc_init(struct mem_block_desc *);
 void *sys_malloc(uint32_t);
 
+/*2021-5-2: 添加释放内存的一系列函数,
+ * 内核接口:sys_free();
+ * global:malloc_page()对应mfree_page():
+ * global:palloc()对应pfree()
+ * static:page_table_add()对应page_table_pte_remove()
+ * static:vaddr_get()对应vaddr_remove()
+ * */
+void mfree_page(enum pool_flags,void *addr,uint32_t);
+void pfree(uint32_t);
+void sys_free();
+
 #endif

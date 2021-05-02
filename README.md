@@ -87,6 +87,18 @@
 
 最后从mem_block_desc.free_list中找到了mem_block,就会将mem_block填充为0,
 
+#### 内存释放 2021-5-2
+
+> 回收内存指的是将bitmap清零,并不是真正的将memory的字节清零
+
+内存分配实际调用函数[^malloc_page()],内存释放按照malloc_page()注释中的相反步骤来做.
+
+mfree_page(粒度:页)流程:
+
+1. pfree()释放物理页
+2. page_table_pte_remove():在page_table中去掉映射关系
+3. vaddr_remove():在虚拟内存池中释放虚拟地址对应的页(清除bitmap)
+
 
 
 ## 以下是写的过程中的一些tips
@@ -278,5 +290,5 @@ pcb大小是4kb,并且只能单独占用一个1页框,pcb的开始,地址`0xabcd
 
 
 
-
+[^malloc_page()]:https://github.com/luchao2424631502/os2/blob/master/kernel/memory.c
 

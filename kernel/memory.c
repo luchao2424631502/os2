@@ -283,87 +283,6 @@ uint32_t addr_v2p(uint32_t vaddr)
 }
 
 
-/* ---- 内存池初始化 ----
- *  1. 实际内存的管理:
- *      1) 内核程序需要申请内存,所以物理内存需要分给一部分给内核,按照1:1分实际内存,则需要一个pool来管理内核实际内存分配
- *      2) 如上,就要有个内核的虚拟内存分配管理
- *      3) user层进程使用的实际内存空间管理
- *      4) 目前没有user进程,所以没有user进程的虚拟内存管理,并且user进程有多个,而内核的虚拟内存管理只需要一个pool来.
- *  2. 如上,目前就有3个pool需要初始化,2个管理实际物理内存,1个管理内核的虚拟内存分配,
- *      kernel的物理内存管理和kernel的虚拟内存管理是对应的,
- * */
-static void mem_pool_init(uint32_t all_mem)
-{
-  put_str("    [mem_pool_init] start\n");
-  /* 页目录+
-   * (后面的)第一个页表(低256项对应1mb内存)+
-   * (后面的)第769-1022个页目录项对应的254个页
-   * */
-  uint32_t page_table_size = PG_SIZE * 256;
-  /*已经使用的物理内存大小=低端1MB+页表(页目录)占用总和页
-   * */
-  uint32_t used_mem = page_table_size + 0x100000;
-  uint32_t free_mem = all_mem - used_mem;
-  /*剩下可以使用的物理内存能凑成多少页*/
-  uint16_t all_free_pages = free_mem / PG_SIZE;
-  /*实际内存由内核和用户1:1平分*/
-  uint16_t kernel_free_pages = all_free_pages / 2;
-  uint16_t user_free_pages = all_free_pages - kernel_free_pages;
-  
-  /*bitmap需要多少个字节来表示*/
-  uint32_t kbm_length = kernel_free_pages / 8;
-  uint32_t ubm_length = user_free_pages / 8;
-
-  /*used_mem既是已经使用的内存,也是剩下可用内存的起始地址*/
-  uint32_t kp_start = used_mem; 
-  uint32_t up_start = kp_start + kernel_free_pages * PG_SIZE;
-
-  /*给内存池赋初值*/
-  kernel_pool.phy_addr_start = kp_start;
-  user_pool.phy_addr_start = up_start;
-
-  kernel_pool.pool_size = kernel_free_pages * PG_SIZE;
-  user_pool.pool_size = user_free_pages * PG_SIZE;
-  
-  kernel_pool.pool_bitmap.btmp_bytes_len = kbm_length;
-  user_pool.pool_bitmap.btmp_bytes_len = ubm_length;
-  
-  /* kernel和user池中bitmap放置在实际内存中的位置
-   * 0xc009a000提供了4个页来放bitmap,先放kernel的bitmap
-   * */
-  kernel_pool.pool_bitmap.bits = (void*)MEM_BITMAP_BASE;
-  /*接着放置user物理内存pool的Bitmap*/
-  user_pool.pool_bitmap.bits = (void*)(MEM_BITMAP_BASE + kbm_length);
-  
-  put_str("        kernel_pool_bitmap_start: "); put_int((int)kernel_pool.pool_bitmap.bits); put_char('\n');
-  put_str("        kernel_pool_phy_addr_start: "); put_int(kernel_pool.phy_addr_start); put_char('\n');
-  put_str("        user_pool_bitmap_start: "); put_int((int)user_pool.pool_bitmap.bits); put_char('\n');
-  put_str("        user_pool_phy_addr_start:  "); put_int(user_pool.phy_addr_start); put_char('\n');
-
-  /*管理物理内存前,清理bitmap */
-  bitmap_init(&kernel_pool.pool_bitmap);
-  bitmap_init(&user_pool.pool_bitmap);
-
-  /* 2021/4/15: 实现用户进程修改memory.c时pool添加了lock成员.所以要初始化*/
-  lock_init(&kernel_pool.lock);
-  lock_init(&user_pool.lock);
-
-  /*
-   * 实际内存管理池初始化完成,现在来初始化内核进程的虚拟内存池管理
-   * 因为elf内核image解析到0xc0015000处执行,所以这个虚拟内存池管理内核程序的申请内存问题
-   * */
-  kernel_vaddr.vaddr_bitmap.btmp_bytes_len = kbm_length;
-  /*内核heap的bitmap放在kernel pool bitmap和user pool bitmap后面*/
-  kernel_vaddr.vaddr_bitmap.bits = (void*)(MEM_BITMAP_BASE + kbm_length + ubm_length);
-  /*内核heap虚拟地址的起始分配点*/
-  kernel_vaddr.vaddr_start = K_HEAP_START;
-  
-  /*
-   *管理kernel虚拟内存池先,清理bitmap */
-  bitmap_init(&kernel_vaddr.vaddr_bitmap);
-
-  put_str("    [mem_pool_init] done\n");
-}
 
 /*2021-5-1:添加:
  * 返回arena中第idx个内存块的地址
@@ -496,6 +415,222 @@ void *sys_malloc(uint32_t size)
     a->cnt--; //arena中可用的mem_block减少
     lock_release(&mem_pool->lock);
     return (void*)b;
+  }
+}
+
+/* ---- 内存池初始化 ----
+ *  1. 实际内存的管理:
+ *      1) 内核程序需要申请内存,所以物理内存需要分给一部分给内核,按照1:1分实际内存,则需要一个pool来管理内核实际内存分配
+ *      2) 如上,就要有个内核的虚拟内存分配管理
+ *      3) user层进程使用的实际内存空间管理
+ *      4) 目前没有user进程,所以没有user进程的虚拟内存管理,并且user进程有多个,而内核的虚拟内存管理只需要一个pool来.
+ *  2. 如上,目前就有3个pool需要初始化,2个管理实际物理内存,1个管理内核的虚拟内存分配,
+ *      kernel的物理内存管理和kernel的虚拟内存管理是对应的,
+ * */
+static void mem_pool_init(uint32_t all_mem)
+{
+  put_str("    [mem_pool_init] start\n");
+  /* 页目录+
+   * (后面的)第一个页表(低256项对应1mb内存)+
+   * (后面的)第769-1022个页目录项对应的254个页
+   * */
+  uint32_t page_table_size = PG_SIZE * 256;
+  /*已经使用的物理内存大小=低端1MB+页表(页目录)占用总和页
+   * */
+  uint32_t used_mem = page_table_size + 0x100000;
+  uint32_t free_mem = all_mem - used_mem;
+  /*剩下可以使用的物理内存能凑成多少页*/
+  uint16_t all_free_pages = free_mem / PG_SIZE;
+  /*实际内存由内核和用户1:1平分*/
+  uint16_t kernel_free_pages = all_free_pages / 2;
+  uint16_t user_free_pages = all_free_pages - kernel_free_pages;
+  
+  /*bitmap需要多少个字节来表示*/
+  uint32_t kbm_length = kernel_free_pages / 8;
+  uint32_t ubm_length = user_free_pages / 8;
+
+  /*used_mem既是已经使用的内存,也是剩下可用内存的起始地址*/
+  uint32_t kp_start = used_mem; 
+  uint32_t up_start = kp_start + kernel_free_pages * PG_SIZE;
+
+  /*给内存池赋初值*/
+  kernel_pool.phy_addr_start = kp_start;
+  user_pool.phy_addr_start = up_start;
+
+  kernel_pool.pool_size = kernel_free_pages * PG_SIZE;
+  user_pool.pool_size = user_free_pages * PG_SIZE;
+  
+  kernel_pool.pool_bitmap.btmp_bytes_len = kbm_length;
+  user_pool.pool_bitmap.btmp_bytes_len = ubm_length;
+  
+  /* kernel和user池中bitmap放置在实际内存中的位置
+   * 0xc009a000提供了4个页来放bitmap,先放kernel的bitmap
+   * */
+  kernel_pool.pool_bitmap.bits = (void*)MEM_BITMAP_BASE;
+  /*接着放置user物理内存pool的Bitmap*/
+  user_pool.pool_bitmap.bits = (void*)(MEM_BITMAP_BASE + kbm_length);
+  
+  put_str("        kernel_pool_bitmap_start: "); put_int((int)kernel_pool.pool_bitmap.bits); put_char('\n');
+  put_str("        kernel_pool_phy_addr_start: "); put_int(kernel_pool.phy_addr_start); put_char('\n');
+  put_str("        user_pool_bitmap_start: "); put_int((int)user_pool.pool_bitmap.bits); put_char('\n');
+  put_str("        user_pool_phy_addr_start:  "); put_int(user_pool.phy_addr_start); put_char('\n');
+
+  /*管理物理内存前,清理bitmap */
+  bitmap_init(&kernel_pool.pool_bitmap);
+  bitmap_init(&user_pool.pool_bitmap);
+
+  /* 2021/4/15: 实现用户进程修改memory.c时pool添加了lock成员.所以要初始化*/
+  lock_init(&kernel_pool.lock);
+  lock_init(&user_pool.lock);
+
+  /*
+   * 实际内存管理池初始化完成,现在来初始化内核进程的虚拟内存池管理
+   * 因为elf内核image解析到0xc0015000处执行,所以这个虚拟内存池管理内核程序的申请内存问题
+   * */
+  kernel_vaddr.vaddr_bitmap.btmp_bytes_len = kbm_length;
+  /*内核heap的bitmap放在kernel pool bitmap和user pool bitmap后面*/
+  kernel_vaddr.vaddr_bitmap.bits = (void*)(MEM_BITMAP_BASE + kbm_length + ubm_length);
+  /*内核heap虚拟地址的起始分配点*/
+  kernel_vaddr.vaddr_start = K_HEAP_START;
+  
+  /*
+   *管理kernel虚拟内存池先,清理bitmap */
+  bitmap_init(&kernel_vaddr.vaddr_bitmap);
+
+  put_str("    [mem_pool_init] done\n");
+}
+
+/*2021-5-2: 添加内存释放函数
+ * pfree:给出页物理内存的地址,在物理内存池中释放此页,
+ * */
+void pfree(uint32_t pg_phy_addr)
+{
+  struct pool *mem_pool;
+  uint32_t bit_idx = 0;
+  /*物理地址先是分给kernel,然后高地址才是user,
+   * 所以先判断是否超过user.base*/
+  if (pg_phy_addr >= user_pool.phy_addr_start)
+  {
+    mem_pool = &user_pool;
+    bit_idx = (pg_phy_addr - user_pool.phy_addr_start) / PG_SIZE;
+  }
+  //物理地址属于kernel pool,
+  else 
+  {
+    mem_pool = &kernel_pool;
+    bit_idx = (pg_phy_addr - user_pool.phy_addr_start) / PG_SIZE;
+  }
+  //将对应的bit清零
+  bitmap_set(&mem_pool->pool_bitmap,bit_idx,0);
+}
+
+/*page_table_pte_remove:去掉vaddr的映射(只去掉pte)*/
+static void page_table_pte_remove(uint32_t vaddr)
+{
+  //根据虚拟地址得到页表项地址
+  uint32_t *pte = pte_ptr(vaddr);
+  *pte &= ~PG_P_1;
+  /*invlpg指令使得 tlb的vaddr处的pte失效*/
+  asm volatile ("invlpg %0"::"m"(vaddr):"memory");
+}
+
+/*vaddr_remove():在虚拟内存池中释放vaddr起始的pg_cnt个页*/
+static void vaddr_remove(enum pool_flags pf,void *_vaddr,uint32_t pg_cnt)
+{
+  uint32_t bit_idx_start = 0;
+  uint32_t vaddr = (uint32_t)_vaddr;
+  uint32_t cnt = 0;
+
+  //kernel的v pool:位于当前文件开头:kernel_vaddr
+  if (pf == PF_KERNEL)
+  {
+    bit_idx_start = (vaddr - kernel_vaddr.vaddr_start) / PG_SIZE;
+    while (cnt < pg_cnt)
+    {
+      bitmap_set(&kernel_vaddr.vaddr_bitmap,bit_idx_start + cnt++,0);
+    }
+  }
+  //user的v pool:位于task_struct.userprog_vaddr
+  else 
+  {
+    struct task_struct *cur_thread = running_thread();
+    bit_idx_start = (vaddr - cur_thread->userprog_vaddr.vaddr_start) / PG_SIZE;
+    while (cnt < pg_cnt)
+    {
+      bitmap_set(&cur_thread->userprog_vaddr.vaddr_bitmap,bit_idx_start + cnt++,0);
+    }
+  }
+}
+
+
+/* mfree_page():释放vaddr起始的cnt个页,对比malloc_page().
+ * 释放内存流程:
+ * 1.pfree()释放物理页
+ * 2.page_table_pte_remove():在page table中去掉映射关系
+ * 3.vaddr_remove():在虚拟地址池中释放虚拟地址
+ * */
+void mfree_page(enum pool_flags pf,void *_vaddr,uint32_t pg_cnt)
+{
+  uint32_t pg_phy_addr;
+  uint32_t vaddr = (uint32_t)_vaddr;
+  uint32_t page_cnt = pg_cnt;
+  ASSERT((pg_cnt>=1) && (vaddr%PG_SIZE==0));
+  /*通过addr_v2p()将虚拟地址转化为物理地址*/
+  pg_phy_addr = addr_v2p(vaddr);
+
+  /*释放的页的物理地址肯定在page directory和page table上*/
+  ASSERT((pg_phy_addr%PG_SIZE==0) && (pg_phy_addr>=0x00102000));
+
+  /*判断pg_phy_addr属于用户物理内存池还是内核物理内存池
+   * 实际内存是一半先给kernel,剩下的一半给user
+   * */
+  if (pg_phy_addr >= user_pool.phy_addr_start)
+  {
+    vaddr -= PG_SIZE;
+    while (page_cnt < pg_cnt)
+    {
+      /*虚拟地址连续但是物理地址不一定连续*/
+      vaddr += PG_SIZE;
+      pg_phy_addr = addr_v2p(vaddr);
+      
+      //确保物理页地址在用户物理内存区域
+      ASSERT((pg_phy_addr%PG_SIZE==0) && (pg_phy_addr>=user_pool.phy_addr_start));
+      
+      /*回收物理页*/
+      pfree(pg_phy_addr);
+
+      /*去掉映射关系*/
+      page_table_pte_remove(vaddr);
+
+      page_cnt++;
+    }
+    /*在虚拟地址池中释放虚拟地址:清除virtual_pool的bitmap*/
+    vaddr_remove(pf,_vaddr,pg_cnt);
+  }
+  //物理地址位于kernel的物理地址区域
+  else 
+  {
+    vaddr -= PG_SIZE;
+    while (page_cnt < pg_cnt)
+    {
+      vaddr += PG_SIZE;
+      pg_phy_addr = addr_v2p(vaddr);
+
+      /*确保页地址内核的物理内存区域*/
+      ASSERT((pg_phy_addr%PG_SIZE==0) && \
+          (pg_phy_addr >= kernel_pool.phy_addr_start) && \
+          (pg_phy_addr <  user_pool.phy_addr_start));
+
+      //同上
+      pfree(pg_phy_addr);
+
+      //同上
+      page_table_pte_remove(vaddr);
+
+      page_cnt++;
+    }
+    //同上
+    vaddr_remove(pf,_vaddr,pg_cnt);
   }
 }
 
