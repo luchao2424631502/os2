@@ -9,13 +9,11 @@
 #define PIC_S_CTRL 0xa0 //从片
 #define PIC_S_DATA 0xa1
 
-// #define IDT_DESC_CNT 0x30 //支持的中断数量
-
 /*2021-4-28:为了支持0x80中断,
  * 所以增加中断数组大小到0x81
  * syscall_handler表示0x80中断的处理函数 
  * */
-#define IDT_DESC_CNT  0X81  
+#define IDT_DESC_CNT  0x81  
 extern uint32_t syscall_handler(void);
 
 #define EFLAGS_IF 0x00000200

@@ -25,8 +25,8 @@ static void frequency_set(uint8_t counter_port,
     uint16_t counter_value)
 {
   outb(PIT_CONTROL_PORT,(uint8_t)(counter_no<<6 | rwl << 4 | counter_mode << 1));
-  outb(counter_port,(uint8_t)(counter_value));
-  outb(counter_port,(uint8_t)(counter_value >> 8));
+  outb(counter_port,(uint8_t)counter_value);
+  outb(counter_port,(uint8_t)counter_value >> 8);
 }
 
 /*时钟中断处理函数,(通过时钟来进行调度)*/

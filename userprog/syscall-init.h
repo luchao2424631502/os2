@@ -11,4 +11,9 @@ uint32_t sys_getpid();
 
 uint32_t sys_write();
 
+/* 声明在memory.h中,因为实现也在memory.c
+void *sys_malloc(uint32_t);
+void sys_free(void *);
+*/
+
 #endif

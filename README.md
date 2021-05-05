@@ -99,6 +99,10 @@ mfree_page(粒度:页)流程:
 2. page_table_pte_remove():在page_table中去掉映射关系
 3. vaddr_remove():在虚拟内存池中释放虚拟地址对应的页(清除bitmap)
 
+添加sys_free()后测试时,在page_table_add()处产生错误,来源于pfree()等函数中变量写错,目前sys_free()测试成功
+
+#### 添加系统调用malloc()和free() 2021-5-4
+
 
 
 ## 以下是写的过程中的一些tips

@@ -15,8 +15,8 @@ enum pool_flags{
 #define PG_P_0  0
 #define PG_RW_R 0 //R/W属性位 可读不可写
 #define PG_RW_W 2 //          可读写
-#define PG_US_U 4 //US属性位 1表示USER级的页, 0123特权级都能访问
 #define PG_US_S 0 //         0表示SUPER级别的页,012特权级能访问
+#define PG_US_U 4 //US属性位 1表示USER级的页, 0123特权级都能访问
 
 /*
  1. virtual_addr中的bitmap以页为单位,虚拟地址也需要唯一才能和physical地址映射,所以来管理虚拟地址
@@ -76,6 +76,6 @@ void *sys_malloc(uint32_t);
  * */
 void mfree_page(enum pool_flags,void *addr,uint32_t);
 void pfree(uint32_t);
-void sys_free();
+void sys_free(void*);
 
 #endif

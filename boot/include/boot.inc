@@ -4,7 +4,6 @@ LOADER_STACK_TOP equ LOADER_BASE_ADDR
 LOADER_START_SECTOR equ 0x2
 
 KERNEL_BIN_BASE_ADDR    equ 0x70000
-KERNEL_IMAGE_BASE_ADDR  equ 0x1500
 KERNEL_START_SECTOR     equ 0x9
 KERNEL_ENTRY_POINT      equ 0xc0001500
 
@@ -49,6 +48,9 @@ PG_RW_R equ 00b
 PG_RW_W equ 10b
 PG_US_S equ 000b
 PG_US_U equ 100b
+
+;PG_P疑似有问题
+PG_TMP  equ 0x7
 
 ;---- program type定义
 PT_NULL equ 0       ;空段类型

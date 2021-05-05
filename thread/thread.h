@@ -9,7 +9,7 @@
 /*定义了一个函数类型,内核线程函数*/
 typedef void thread_func(void*);
 /*定义pid_t*/
-typedef uint16_t pid_t;
+typedef int16_t pid_t;
 
 /*任务的状态*/
 enum task_status

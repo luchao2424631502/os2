@@ -35,6 +35,7 @@ VIDEO_DESC:
 loader_start:;现在仍在实模式下
 	xor ebx,ebx
 	mov edx,0x534d4150
+
 	mov di,ards_buf
 ;-----int 0x15h ax=0xe8200 -----
 .e820_mem_get_loop:
@@ -144,6 +145,7 @@ p_mode_start:
 
 	;修改gdt表的虚拟地址
 	add dword [gdt_ptr + 2],0xc0000000
+  
 	add esp,0xc0000000
 	
 	;将当期页(目录)物理地址放入cr3中
@@ -226,9 +228,11 @@ setup_page:
 	add eax,0x1000		;+4k 地址大小
 	mov ebx,eax			;ebx = 第一个页表的起始物理地址
 
-	or eax,PG_US_U | PG_RW_W | PG_P	;4byte的entry加上内存限制属性
-	mov [PAGE_DIR_TABLE_POS + 0x0],eax	;分页开启前后的地址恰好对应
-	mov [PAGE_DIR_TABLE_POS + 0xc00],eax;虚拟地址的内核空间地址在低1mb中
+  or eax,PG_US_U | PG_RW_W | PG_P	          ;4byte的entry加上内存限制属性
+  ; or eax,PG_TMP
+
+	mov [PAGE_DIR_TABLE_POS + 0x0],eax	    ;分页开启前后的地址恰好对应
+	mov [PAGE_DIR_TABLE_POS + 0xc00],eax    ;虚拟地址的内核空间地址在低1mb中
 
 	sub eax,0x1000
 	mov [PAGE_DIR_TABLE_POS + 4092],eax	;最后一项指向页目录自己
@@ -236,7 +240,10 @@ setup_page:
 	;创建 页表项
 	mov ecx,256		;只需要低1mb的空间大小
 	mov esi,0
-	mov edx,PG_US_U | PG_RW_W | PG_P;虚拟地址对应的物理地址从0开始
+	
+  mov edx,PG_US_U | PG_RW_W | PG_P;虚拟地址对应的物理地址从0开始
+  ; mov edx,PG_TMP
+
 .create_pte:
 	mov [ebx+esi*4],edx
 	add edx,4096	;对应的物理地址+4k
@@ -246,8 +253,11 @@ setup_page:
 	;创建 内核空间的页目录项(pde) : 把内核的虚拟地址空间写死
 	mov eax,PAGE_DIR_TABLE_POS
 	add eax,0x2000		;第2个页表的物理地址
-	or eax,PG_US_U | PG_RW_W | PG_P
-	mov ebx,PAGE_DIR_TABLE_POS
+	
+  or eax,PG_US_U | PG_RW_W | PG_P
+  ; or eax,PG_TMP
+	
+  mov ebx,PAGE_DIR_TABLE_POS
 	mov ecx,254			;填充254个页目录项
 	mov esi,769			;从第769个pde开始填充
 .create_kernel_pde:
