@@ -8,6 +8,7 @@ vgaromimage: file=/usr/share/bochs/VGABIOS-lgpl-latest
 boot: disk
 ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
 ata0-master: type=disk, path="hd60M.img", mode=flat, cylinders=121, heads=16, spt=63
+ata0-slave: type=disk, path="hd80M.img", mode=flat, cylinders=162, heads=16, spt=63
 
 log: tmp/bochsout.txt
 

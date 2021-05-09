@@ -8,6 +8,7 @@
 #include "keyboard.h"
 #include "tss.h"
 #include "syscall-init.h"
+#include "ide.h"
 
 void init_all()
 {
@@ -32,4 +33,11 @@ void init_all()
 
   // 4-29: 添加syscall
   syscall_init();
+
+  {
+    //开中断
+    intr_enable();
+    // 5-7: 添加硬盘初始化
+    ide_init();
+  }
 }

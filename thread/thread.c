@@ -12,10 +12,39 @@
 extern void switch_to(struct task_struct *,struct task_struct *);
 
 struct task_struct *main_thread; //主线程的PCB
+struct task_struct *idle_thread; //idle线程
 struct list thread_ready_list;   //线程就绪队列
 struct list thread_all_list;     //所有线程队列
 static struct list_elem *thread_tag;//保存队列中的线程节点
 struct lock pid_lock;            //pid锁
+
+/*空闲线程*/
+static void idle(void *arg UNUSED)
+{
+  while (1)
+  {
+    thread_block(TASK_BLOCKED);
+    //开中断使得cpu可以从暂停状态恢复
+    asm volatile ("sti; hlt":::"memory");
+  }
+}
+
+
+/*获取当前线程pcb指针*/
+struct task_struct *running_thread()
+{
+  uint32_t esp;
+  asm ("mov %%esp,%0":"=g"(esp)::);
+  //根据当前线程的栈esp得到pcb的起始地址
+  return (struct task_struct *)(esp & 0xfffff000);
+}
+
+static void kernel_thread(thread_func* function,void *func_arg)
+{
+  //避免时钟中断被屏蔽,后面此线程一直独占cpu
+  intr_enable();
+  function(func_arg);
+}
 
 /*给task分配pid*/
 static pid_t allocate_pid()
@@ -27,22 +56,6 @@ static pid_t allocate_pid()
   next_pid++;
   lock_release(&pid_lock);
   return next_pid;
-}
-
-/*获取当前线程pcb指针*/
-struct task_struct *running_thread()
-{
-  uint32_t esp;
-  asm ("mov %%esp,%0":"=g"(esp)::);
-  //根据当前线程的栈esp得到pcb的起始地址
-  return (struct task_struct *)(esp & 0xfffff000);
-}
-
-static void kernel_thread(thread_func function,void *func_arg)
-{
-  //避免时钟中断被屏蔽,后面此线程一直独占cpu
-  intr_enable();
-  function(func_arg);
 }
 
 /*初始化线程栈,*/
@@ -157,6 +170,12 @@ void schedule()
 
   }
 
+  /*当前就绪队列为空,唤醒idle线程*/
+  if (list_empty(&thread_ready_list))
+  {
+    thread_unblock(idle_thread);
+  }
+
   ASSERT(!list_empty(&thread_ready_list));
   thread_tag = NULL;
   thread_tag = list_pop(&thread_ready_list);
@@ -185,9 +204,7 @@ void thread_block(enum task_status status)
 void thread_unblock(struct task_struct *thread)
 {
   enum intr_status old_status = intr_disable();
-  ASSERT((thread->status == TASK_HANGING)||
-      (thread->status == TASK_BLOCKED)||
-      (thread->status == TASK_WAITING));
+  ASSERT((thread->status == TASK_BLOCKED)||(thread->status == TASK_WAITING)||(thread->status == TASK_HANGING));
   //只要thread的状态不是ready,说明当前不再就绪队列,仍然是被阻塞
   if (thread->status != TASK_READY)
   {
@@ -204,6 +221,18 @@ void thread_unblock(struct task_struct *thread)
   intr_set_status(old_status);
 }
 
+/*当前线程让出cpu时间片,立刻加入到就绪队列,(注意不是阻塞)*/
+void thread_yield()
+{
+  struct task_struct *cur = running_thread();
+  enum intr_status old_status = intr_disable();
+  ASSERT(!elem_find(&thread_ready_list,&cur->general_tag));
+  list_append(&thread_ready_list,&cur->general_tag);
+  cur->status = TASK_READY;
+  schedule();
+  intr_set_status(old_status);
+}
+
 /*内核线程初始化(调度器)运行前准备*/
 void thread_init()
 {
@@ -214,5 +243,9 @@ void thread_init()
   lock_init(&pid_lock);
   //将main函数包装成线程
   make_main_thread();
+
+  //添加空闲线程
+  idle_thread = thread_start("IDLE",10,idle,NULL);
+
   put_str("[thread_init] end\n");
 }

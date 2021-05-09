@@ -111,4 +111,5 @@ void thread_init();
 void thread_block(enum task_status);
 void thread_unblock(struct task_struct *);
 
+void thread_yield();
 #endif

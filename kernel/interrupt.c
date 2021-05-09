@@ -53,13 +53,13 @@ static void pic_init()
   // outb(PIC_M_DATA,0xfe);
   // outb(PIC_S_DATA,0xff);
 
-  //打开键盘中断
-  //outb(PIC_M_DATA,0xfd);
-  //outb(PIC_S_DATA,0xff);
-
   //同时打开键盘中断和时钟中断
-  outb(PIC_M_DATA,0xfc);
-  outb(PIC_S_DATA,0xff);
+  // outb(PIC_M_DATA,0xfc);
+  // outb(PIC_S_DATA,0xff);
+
+  //键盘+时钟+irq2+硬盘
+  outb(PIC_M_DATA,0xf8);
+  outb(PIC_S_DATA,0xbf);
 
   put_str("    pic_init done\n");
 }
