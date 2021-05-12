@@ -357,7 +357,7 @@ static void partition_scan(struct disk *hd,uint32_t ext_lba)
         hd->prim_parts[p_no].my_disk = hd;    //分区所属的硬盘
         list_append(&partition_list,&hd->prim_parts[p_no].part_tag); //加入到全局变量partition_list记录所有分区
         sprintf(hd->prim_parts[p_no].name,"%s%d",hd->name,p_no+1);   //sdb[1-4]
-        printk("name = %s\n",hd->prim_parts[p_no].name);
+        // printk("name = %s\n",hd->prim_parts[p_no].name);
         p_no++;
         ASSERT(p_no<4); // 0 1 2 3
       }
@@ -369,7 +369,7 @@ static void partition_scan(struct disk *hd,uint32_t ext_lba)
         hd->logic_parts[l_no].my_disk = hd;
         list_append(&partition_list,&hd->logic_parts[l_no].part_tag);
         sprintf(hd->logic_parts[l_no].name,"%s%d",hd->name,l_no + 5);//logic分区号从5开始
-        printk("name = %s\n",hd->logic_parts[l_no].name);
+        // printk("name = %s\n",hd->logic_parts[l_no].name);
         l_no++;
         /*理论上逻辑分区的个数是无限的,这里最多只支持8个逻辑分区*/
         if (l_no >= 8)
@@ -388,7 +388,7 @@ static bool partition_info(struct list_elem *elem,int arg UNUSED)
 {
   //根据成员得到struct的首地址
   struct partition *part = elem2entry(struct partition,part_tag,elem);
-  printk("list_traversal_part_name: %s",part->name);
+  // printk("list_traversal_part_name: %s",part->name);
   printk("    %s start_lba:0x%x,sec_cnt:0x%x\n",part->name,part->start_lba,part->sec_cnt);
 
   //让list_traversal()中的if()不执行,就可以遍历所有

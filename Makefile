@@ -3,7 +3,7 @@ ENTRY_POINT=0xc0001500
 AS				 =nasm
 CC  			 =gcc
 LD 				 =ld
-INCLUDE		 =-I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/
+INCLUDE		 =-I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/ -I fs/
 ASFLAGS    =-f elf
 CFLAGS     =-Wall $(INCLUDE) -c -m32 -fno-builtin -fno-stack-protector -W #-Wmissing-prototypes -Wstrict-prototypes
 #Wall 和 W 是警告信息,Wstrict-prototypes:函数声明需要指出参数类型  Wmissing-prototypes:没有预先声明函数旧定义全局函数将警告
@@ -15,7 +15,7 @@ OBJS       =$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o $(B
 						$(BUILD_DIR)/console.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/ioqueue.o\
 						$(BUILD_DIR)/tss.o $(BUILD_DIR)/process.o $(BUILD_DIR)/syscall.o\
 						$(BUILD_DIR)/syscall-init.o $(BUILD_DIR)/stdio.o $(BUILD_DIR)/stdio-kernel.o\
-						$(BUILD_DIR)/ide.o
+						$(BUILD_DIR)/ide.o $(BUILD_DIR)/fs.o
 BOOTLOADER = $(BUILD_DIR)/mbr.bin $(BUILD_DIR)/loader.bin
 # ---- boot + loader ----
 $(BUILD_DIR)/mbr.bin: boot/mbr.s
@@ -85,6 +85,9 @@ $(BUILD_DIR)/stdio-kernel.o:lib/kernel/stdio-kernel.c
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/ide.o:device/ide.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/fs.o:fs/fs.c
 	$(CC) $(CFLAGS) $< -o $@
 
 #---- ASM汇编文件编译 ----

@@ -47,6 +47,7 @@ void intr_hd_handler(uint8_t);
 void ide_init();
 extern uint8_t channel_cnt;
 extern struct ide_channel channels[];
+extern struct list partition_list;
 void ide_read(struct disk *,uint32_t,void *,uint32_t);
 void ide_write(struct disk *,uint32_t ,void *,uint32_t );
 #endif

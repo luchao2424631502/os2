@@ -9,6 +9,7 @@
 #include "tss.h"
 #include "syscall-init.h"
 #include "ide.h"
+#include "fs.h"
 
 void init_all()
 {
@@ -40,4 +41,7 @@ void init_all()
     // 5-7: 添加硬盘初始化
     ide_init();
   }
+
+  // 5-12添加文件系统初始化
+  filesys_init();
 }
