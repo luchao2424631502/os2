@@ -12,6 +12,7 @@
 #include "syscall.h"
 #include "syscall-init.h"
 #include "stdio.h"
+#include "super_block.h"
 
 void k_thread_a(void *);
 void k_thread_b(void *);

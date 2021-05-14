@@ -8,6 +8,61 @@
 #include "memory.h"
 #include "debug.h"
 #include "string.h"
+#include "list.h"
+
+//默认情况下操作的是哪一个分区
+struct partition *cur_part;
+
+/*在分区链表中找到part_name分区,并且赋值给cur_part*/
+static bool mount_partition(struct list_elem *elem,int arg)
+{
+  char *part_name = (char *)arg;
+  struct partition *part = elem2entry(struct partition,part_tag,elem);
+  if (!strcmp(part->name,part_name))
+  {
+    cur_part = part;
+    struct disk *hd = cur_part->my_disk;
+
+    //超级块缓存
+    struct super_block *sb_buf = (struct super_block*)sys_malloc(SECTOR_SIZE);
+
+    //当前super_block的信息
+    cur_part->sb = (struct super_block*)sys_malloc(sizeof(struct super_block));
+    if (cur_part->sb == NULL)
+    {
+      PANIC("alloc memory failed!");
+    }
+
+    memset(sb_buf,0,SECTOR_SIZE);
+    ide_read(hd,cur_part->start_lba+1,sb_buf,1);//将当前分区的superblock读入sb_buf中
+
+    memcpy(cur_part->sb,sb_buf,sizeof(struct super_block));
+    cur_part->block_bitmap.bits = (uint8_t *)sys_malloc(sb_buf->block_bitmap_sects * SECTOR_SIZE);
+    if (cur_part->block_bitmap.bits == NULL)
+    {
+      PANIC("alloc memory failed!");
+    }
+    cur_part->block_bitmap.btmp_bytes_len = sb_buf->block_bitmap_sects * SECTOR_SIZE;
+
+    //将原分区的block bitmap扇区读取到内存中来
+    ide_read(hd,sb_buf->block_bitmap_lba,cur_part->block_bitmap.bits,sb_buf->block_bitmap_sects);
+
+    /*inode bitmap读入内存*/
+    cur_part->inode_bitmap.bits = (uint8_t *)sys_malloc(sb_buf->inode_bitmap_sects * SECTOR_SIZE);
+    if (cur_part->inode_bitmap.bits == NULL)
+    {
+      PANIC("alloc memory failed!");
+    }
+    cur_part->inode_bitmap.btmp_bytes_len = sb_buf->inode_bitmap_sects * SECTOR_SIZE;
+    ide_read(hd,sb_buf->inode_bitmap_lba,cur_part->inode_bitmap.bits,sb_buf->inode_bitmap_sects);
+
+    list_init(&cur_part->open_inodes);
+    printk("[mount] %s done!",part->name);
+
+    return true;
+  }
+  return false;
+}
 
 /*分区格式化*/
 // static void partition_format(struct disk *hd,struct partition *part)
@@ -168,4 +223,8 @@ void filesys_init()
     channel_no++;
   }
   sys_free(sb_buf);
+
+  char default_part[8] = "sdb1";
+  //挂载sdb1分区
+  list_traversal(&partition_list,mount_partition,(int)default_part);
 }
