@@ -6,6 +6,8 @@
 #include "bitmap.h"
 #include "memory.h"
 
+#define MAX_FILES_OPEN_PER_PROC 8
+
 /*定义了一个函数类型,内核线程函数*/
 typedef void thread_func(void*);
 /*定义pid_t*/
@@ -81,6 +83,9 @@ struct task_struct
   uint8_t ticks; //每次上cpu指向的tick数(时间片)
   uint32_t elapsed_ticks;//一共占用了多少cpu的tick数
 
+  /*5-14添加文件描述符数组*/
+  int32_t fd_table[MAX_FILES_OPEN_PER_PROC];
+  
   struct list_elem general_tag; //双向链表(调度队列)中的节点标签
   struct list_elem all_list_tag;//线程队列(管理所有线程的队列)的节点标签
 

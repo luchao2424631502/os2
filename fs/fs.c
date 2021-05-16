@@ -170,6 +170,122 @@ static void partition_format(struct partition *part)
   sys_free(buf);
 }
 
+
+/**/
+static char *path_parse(char *pathname,char *name_store)
+{
+  if (pathname[0] == '/')
+  {
+    while (*(++pathname) == '/');
+  }
+
+  while (*pathname != '/' && *pathname != 0)
+  {
+    *name_store++ = *pathname++;
+  }
+
+  //到结尾了
+  if (pathname[0] == 0)
+  {
+    return NULL;
+  }
+
+  return pathname;
+}
+
+/*路径深度*/
+int32_t path_depth_cnt(char *pathname)
+{
+  ASSERT(pathname != NULL);
+  char *p = pathname;
+  char name[MAX_FILE_NAME_LEN];
+  uint32_t depth = 0;
+
+  p = path_parse(p,name);
+  while (name[0])
+  {
+    depth++;
+    memset(name,0,MAX_FILE_NAME_LEN);
+    if (p)
+    {
+      p = path_parse(p,name);
+    }
+  }
+  return depth;
+}
+
+/*给出路径pathname,搜索找到其inode号*/
+static int search_file(const char *pathname,struct path_search_record *searched_record)
+{
+  //搜索根目录,根目录的当前目录,根目录的父目录,都直接填好search_record后返回
+  if (!strcmp(pathname,"/") || !strcmp(pathname,"/.") || !strcmp(pathname,"/.."))
+  {
+    searched_record->parent_dir = &root_dir;
+    searched_record->file_type = FT_DIRECTORY;
+    searched_record->searched_path[0] = 0;
+    return 0;
+  }
+
+  uint32_t path_len = strlen(pathname);
+  ASSERT(pathname[0] == '/' && path_len > 1 && path_len < MAX_PATH_LEN);
+  char *sub_path = (char *)pathname;
+  struct dir *parent_dir = &root_dir;
+  struct dir_entry dir_e;
+
+  //路径各级的名称
+  char name[MAX_FILE_NAME_LEN] = {0};
+
+  searched_record->parent_dir = parent_dir;
+  searched_record->file_type = FT_UNKNOWN;
+  uint32_t parent_inode_no = 0;
+
+  sub_path = path_parse(sub_path,name);
+  while (name[0])
+  {
+    //曾搜索过的路径
+    ASSERT(strlen(searched_record->searched_path) < 512);
+
+    //字符串拼接,这一次拿到的文件名
+    strcat(searched_record->searched_path,"/");
+    strcat(searched_record->searched_path,name);
+
+    //在目录dir下查找 本次 提取出来的当前目录的文件（子目录)
+    if (search_dir_entry(cur_part,parent_dir,name,&dir_e))
+    {
+      memset(name,0,MAX_FILE_NAME_LEN);
+      if (sub_path)
+      {
+        sub_path = path_parse(sub_path,name);
+      }
+
+      if (dir_e.f_type == FT_DIRECTORY) //name文件是dir
+      {
+        parent_inode_no = parent_dir->inode->i_no;
+        dir_close(parent_dir);
+        parent_dir = dir_open(cur_part,dir_e.i_no);//当前目录作为父目录,进行下一次查找
+        searched_record->parent_dir = parent_dir;
+        continue;
+      }
+      else if (dir_e.f_type == FT_REGULAR) //不一定找到了,可能是路径中的一个文件
+      {
+        searched_record->file_type = FT_REGULAR;
+        return dir_e.i_no;
+      }
+    }
+    else 
+    {
+      return -1;
+    }
+  }
+
+  dir_close(searched_record->parent_dir);
+
+  searched_record->parent_dir = dir_open(cur_part,parent_inode_no);
+  searched_record->file_type = FT_DIRECTORY;
+  return dir_e.i_no;
+}
+
+
 /*文件系统初始化*/
 void filesys_init()
 {

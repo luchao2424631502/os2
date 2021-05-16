@@ -98,6 +98,18 @@ void init_thread(struct task_struct *thread,char *name,int prio)
   thread->ticks = prio;
   thread->elapsed_ticks = 0;
   thread->pgdir = NULL;
+
+  //预留stdio的描述符
+  thread->fd_table[0] = 0;
+  thread->fd_table[1] = 1;
+  thread->fd_table[2] = 2;
+  uint8_t fd_idx = 3;
+  while(fd_idx < MAX_FILES_OPEN_PER_PROC)
+  {
+    thread->fd_table[fd_idx] = -1;
+    fd_idx++;
+  }
+
   thread->stack_magic = 0x20010522;
 }
 
