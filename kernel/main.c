@@ -14,6 +14,8 @@
 #include "stdio.h"
 #include "super_block.h"
 
+#include "file.h"
+
 void k_thread_a(void *);
 void k_thread_b(void *);
 
@@ -28,12 +30,14 @@ int main()
   init_all();
 
   /*用户进程*/
-  // process_execute(u_prog_a,"user_prog_a");
-  // process_execute(u_prog_b,"user_prog_b");
+  process_execute(u_prog_a,"user_prog_a");
+  process_execute(u_prog_b,"user_prog_b");
 
   /*需要通过kernel线程来打印用户进程Pid,因为用户进程没有权限使用console_put_xxx*/
-  // thread_start("k_thread_a",31,k_thread_a,"argA ");
-  // thread_start("k_thread_b",31,k_thread_b,"argB ");
+  thread_start("k_thread_a",31,k_thread_a,"argA ");
+  thread_start("k_thread_b",31,k_thread_b,"argB ");
+
+  sys_open("/file1",O_CREAT);
 
   while(1){}
   return 0;

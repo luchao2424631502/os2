@@ -9,6 +9,8 @@
 #include "string.h"
 #include "thread.h"
 #include "global.h"
+#include "list.h"
+#include "bitmap.h"
 
 #define DEFAULT_SECS 1
 
@@ -98,3 +100,94 @@ void bitmap_sync(struct partition *part,uint32_t bit_idx,uint8_t btmp_type)
   ide_write(part->my_disk,sec_lba,bitmap_off,1);
 }
 
+/*创建文件,失败返回-1,成功返回fd*/
+int32_t file_create(struct dir *parent_dir,char *filename,uint8_t flag)
+{
+  void *io_buf = sys_malloc(1024);
+  if (io_buf == NULL)
+  {
+    printk("in file_create(): sys_malloc for io_buf failed\n");
+    return -1;
+  }
+
+  uint8_t rollback_step = 0;
+
+  //为新文件分配inode
+  int32_t inode_no = inode_bitmap_alloc(cur_part);
+  if (inode_no == -1)
+  {
+    printk("in file_create(): allocate inode failed\n");
+    return -1;
+  }
+
+  struct inode *new_file_inode = (struct inode *)sys_malloc(sizeof(struct inode));
+  if (new_file_inode == NULL)
+  {
+    printk("file_crate: sys_malloc for inode failed\n");
+    rollback_step = 1;
+    goto rollback;
+  }
+
+  //初始化inode
+  inode_init(inode_no,new_file_inode);
+
+  //在file_table[]中找空闲slot,返回下标
+  int fd_idx = get_free_slot_in_global();
+  if (fd_idx == -1)
+  {
+    printk("exceed max open files\n");
+    rollback_step = 2;
+    goto rollback;
+  }
+
+  file_table[fd_idx].fd_inode = new_file_inode;
+  file_table[fd_idx].fd_pos = 0;
+  file_table[fd_idx].fd_flag = flag;//O_CREATE
+  file_table[fd_idx].fd_inode->write_deny = false;
+
+  //目录项
+  struct dir_entry new_dir_entry;
+  memset(&new_dir_entry,0,sizeof(struct dir_entry));
+
+  //创建目录项
+  create_dir_entry(filename,inode_no,FT_REGULAR,&new_dir_entry);
+
+
+  /*同步数据到硬盘中*/
+  if (!sync_dir_entry(parent_dir,&new_dir_entry,io_buf))
+  {
+    printk("sync dir_entry to disk failed\n");
+    rollback_step = 3;
+    goto rollback;
+  }
+
+  memset(io_buf,0,1024);
+  inode_sync(cur_part,parent_dir->inode,io_buf);//将父目录的inode内容填充到硬盘中
+
+  memset(io_buf,0,1024);
+  inode_sync(cur_part,new_file_inode,io_buf);//将新文件的Inode内容同步到硬盘中
+
+  bitmap_sync(cur_part,inode_no,INODE_BITMAP);//将inode_bitmap同步到硬盘中
+
+  //将新的Inode添加到内存缓冲中
+  list_push(&cur_part->open_inodes,&new_file_inode->inode_tag);
+  new_file_inode->i_open_cnts = 1;
+
+  sys_free(io_buf);
+  /*将file的全局描述符下标 安装到 进程的pcb的file_table[]中*/
+  return pcb_fd_install(fd_idx);
+
+rollback:
+  switch(rollback_step)
+  {
+    case 3://清空全局file_table[]的相应位
+      memset(&file_table[fd_idx],0,sizeof(struct file));
+    case 2:
+      sys_free(new_file_inode);
+    case 1:
+      bitmap_set(&cur_part->inode_bitmap,inode_no,0);
+      break;
+  }
+  sys_free(io_buf);
+  return -1;
+}

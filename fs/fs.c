@@ -1,4 +1,5 @@
 #include "fs.h"
+#include "file.h"
 #include "inode.h"
 #include "super_block.h"
 #include "dir.h"
@@ -57,7 +58,7 @@ static bool mount_partition(struct list_elem *elem,int arg)
     ide_read(hd,sb_buf->inode_bitmap_lba,cur_part->inode_bitmap.bits,sb_buf->inode_bitmap_sects);
 
     list_init(&cur_part->open_inodes);
-    printk("[mount] %s done!",part->name);
+    printk("[mount] %s done!\n",part->name);
 
     return true;
   }
@@ -285,6 +286,71 @@ static int search_file(const char *pathname,struct path_search_record *searched_
   return dir_e.i_no;
 }
 
+/*open文件,失败返回-1*/
+int32_t sys_open(const char *pathname,uint8_t flags)
+{
+  //对于目录文件需使用dir_open())
+  if (pathname[strlen(pathname)-1] == '/')
+  {
+    printk("fs/fs.c sys_open() can't open a directory %s\n",pathname);
+    return -1;
+  }
+
+  ASSERT(flags <= 7);
+  int32_t fd = -1;
+
+  struct path_search_record searched_record;
+  memset(&searched_record,0,sizeof(struct path_search_record));
+
+  uint32_t pathname_depth = path_depth_cnt((char*)pathname);
+
+  //判断文件是否存在
+  int inode_no = search_file(pathname,&searched_record);
+  bool found = inode_no != -1 ? true : false;
+
+  if (searched_record.file_type == FT_DIRECTORY)
+  {
+    printk("fs/fs.c sys_open():can't open a directory with open(),used opendir() to instead\n");
+    dir_close(searched_record.parent_dir);
+    return -1;
+  }
+
+  uint32_t path_searched_depth = path_depth_cnt(searched_record.searched_path);
+
+  //判断是否访问了所有目录,如果处于中间目录则失败
+  if (pathname_depth != path_searched_depth)
+  {
+    printk("fs/fs.c sys_open():cannot access %s: Not a directory, subpath %s is't exist\n",pathname,searched_record.searched_path);
+    dir_close(searched_record.parent_dir);
+    return -1;
+  }
+
+  //没有找到文件并且不是创建文件
+  if (!found && !(flags & O_CREAT))
+  {
+    printk("fs/fs.c sys_open(): in path %s, file %s is't exist\n",searched_record.searched_path,(strrchr(searched_record.searched_path,'/') + 1));
+    dir_close(searched_record.parent_dir);
+    return -1;
+  }
+  //文件存在并且要创建
+  else if (found && flags & O_CREAT)
+  {
+    printk("fs/fs.c sys_open(): %s has already exist!\n",pathname);
+    dir_close(searched_record.parent_dir);
+    return -1;
+  }
+
+  //好像目前就实现了文件创建,并没有实现文件打开
+  switch (flags & O_CREAT)
+  {
+    case O_CREAT:
+      printk("fs/fs.c sys_open(): creating file\n");
+      fd = file_create(searched_record.parent_dir,(strrchr(pathname,'/') + 1),flags);
+      dir_close(searched_record.parent_dir);
+  }
+
+  return fd;
+}
 
 /*文件系统初始化*/
 void filesys_init()
@@ -324,7 +390,17 @@ void filesys_init()
           ide_read(hd,part->start_lba+1,sb_buf,1);
 
           if (sb_buf->magic == 0x20010522)
+          {
             printk("%s has filesystem\n",part->name);
+
+            /*测试代码
+            partition_format(part);
+            if (!strcmp(part->name,"sdb1"))
+            {
+              while (1);
+            }
+            */
+          }
           else
           {
             printk("formatting %s's partition %s\n",hd->name,part->name);
@@ -343,4 +419,14 @@ void filesys_init()
   char default_part[8] = "sdb1";
   //挂载sdb1分区
   list_traversal(&partition_list,mount_partition,(int)default_part);
+
+  /*将当前分区的根目录打开*/
+  open_root_dir(cur_part);
+
+  //初始化全局文件表
+  uint32_t fd_idx = 0;
+  while (fd_idx < MAX_FILE_OPEN)
+  {
+    file_table[fd_idx++].fd_inode = NULL;
+  }
 }

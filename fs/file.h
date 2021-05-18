@@ -3,6 +3,8 @@
 
 #include "stdint.h"
 #include "inode.h"
+#include "ide.h"
+#include "dir.h"
 
 /*文件描述符背后对应的结构*/
 struct file 
@@ -28,9 +30,11 @@ enum bitmap_type
 
 #define MAX_FILE_OPEN 32//系统可打开的最大文件树
 
+extern struct file file_table[MAX_FILE_OPEN];
 int32_t get_free_slot_in_global();
 int32_t pcb_fd_install(int32_t ); 
 int32_t inode_bitmap_alloc(struct partition *);
 int32_t block_bitmap_alloc(struct partition *);
 void bitmap_sync(struct partition *,uint32_t,uint8_t);
+int32_t file_create(struct dir *,char *,uint8_t );
 #endif
