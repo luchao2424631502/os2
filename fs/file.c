@@ -191,3 +191,55 @@ rollback:
   sys_free(io_buf);
   return -1;
 }
+
+/*打开inode为inode_no对应的文件,失败返回-1*/
+int32_t file_open(uint32_t inode_no,uint8_t flag)
+{
+  //在全局fd_table[]中找到空闲槽并且返回下标
+  int fd_idx = get_free_slot_in_global();
+  if (fd_idx == -1)
+  {
+    printk("fs/file.c file_open(): exceed max open files\n");
+    return -1;
+  }
+
+  //填充fd_table
+  file_table[fd_idx].fd_inode = inode_open(cur_part,inode_no);
+  file_table[fd_idx].fd_pos = 0;
+  file_table[fd_idx].fd_flag = flag; 
+
+  bool *write_deny = &file_table[fd_idx].fd_inode->write_deny; 
+
+  //写文件需要考虑 write_deny,可以多个进程读,但是不能多个进程同时写
+  if (flag & O_WRONLY || flag & O_RDWR)
+  {
+    //关中断避免调度
+    enum intr_status old_status = intr_disable();
+    if (!(*write_deny))//当前没有进程在写此文件
+    {
+      *write_deny = true; 
+      intr_set_status(old_status);
+    }
+    else//其它进程正在写,那么当前进程不能写 
+    {
+      intr_set_status(old_status);
+      printk("fs/file.c file_open(): file can't be write now,try later\n");
+      return -1;
+    }
+  }
+
+  //安装到当前进程的pcb中
+  return pcb_fd_install(fd_idx);
+}
+
+/*关闭文件*/
+int32_t file_close(struct file *file)
+{
+  if (file == NULL)
+    return -1;
+
+  file->fd_inode->write_deny = false;//false写标志
+  inode_close(file->fd_inode);      //关闭inode
+  file->fd_inode = NULL;            //释放file struct 
+  return 0;
+}
