@@ -39,4 +39,5 @@ int32_t path_depth_cnt(char *);
 int32_t sys_open(const char *,uint8_t);
 int32_t sys_close(int32_t);
 int32_t sys_write(int32_t,const void *,uint32_t);//代替userprog/syscall-init.c中的原来的sys_write()
+int32_t sys_read(int32_t,void *,uint32_t);
 #endif

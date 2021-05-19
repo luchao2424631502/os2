@@ -414,6 +414,19 @@ int32_t sys_write(int32_t fd,const void *buf,uint32_t count)
   }
 }
 
+/*从fd中读取count个字节到buf中,正常返回读取到的字节,失败返回-1*/
+int32_t sys_read(int32_t fd,void *buf,uint32_t count)
+{
+  if (fd < 0)
+  {
+    printk("fs/fs.c sys_read(): fd error\n");
+    return -1;
+  }
+  ASSERT(buf != NULL);
+  uint32_t global_fd = fd_local2global(fd);
+  return file_read(&file_table[global_fd],buf,count);
+}
+
 /*文件系统初始化*/
 void filesys_init()
 {
