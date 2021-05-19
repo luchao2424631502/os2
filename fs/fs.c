@@ -10,6 +10,7 @@
 #include "debug.h"
 #include "string.h"
 #include "list.h"
+#include "console.h"
 
 //默认情况下操作的是哪一个分区
 struct partition *cur_part;
@@ -376,6 +377,41 @@ int32_t sys_close(int32_t fd)
     running_thread()->fd_table[fd] = -1;//指向的fd_table的下标为0,
   }
   return ret;
+}
+
+/* 将buf中的连续count字节写入文件描述符fd
+ * 底层是file_write(),*/
+int32_t sys_write(int32_t fd,const void *buf,uint32_t count)
+{
+  if (fd < 0)
+  {
+    printk("fs/fs.c sys_write(): fd error\n");
+    return -1;
+  }
+
+  //向屏幕输出,
+  if (fd == stdout_no)
+  {
+    char tmp_buf[1024] = {0};
+    memcpy(tmp_buf,buf,count);
+    console_put_str(tmp_buf);
+    return count;
+  }
+
+  //向文件写入
+  uint32_t global_fd = fd_local2global(fd);//将进程中fd转化为file_table[]下标 
+  struct file *wr_file = &file_table[global_fd];
+  //根据进程打开文件时的性质判断是否是写
+  if (wr_file->fd_flag & O_WRONLY || wr_file->fd_flag & O_RDWR)
+  {
+    uint32_t bytes_written = file_write(wr_file,buf,count);
+    return bytes_written;
+  }
+  else 
+  {
+    console_put_str("fs/fs.c sys_write(): not allowed to write file without flag O_RDWR or O_WRONLY\n");
+    return -1;
+  }
 }
 
 /*文件系统初始化*/

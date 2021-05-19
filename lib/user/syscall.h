@@ -15,7 +15,7 @@ enum SYSCALL_NR{
 /*用户空间api的函数声明*/
 uint32_t getpid(void);
 
-uint32_t write(char *str);
+uint32_t write(int32_t,const void *,uint32_t);
 
 void *malloc(uint32_t);
 

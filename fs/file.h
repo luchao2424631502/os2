@@ -5,6 +5,7 @@
 #include "inode.h"
 #include "ide.h"
 #include "dir.h"
+#include "global.h"
 
 /*文件描述符背后对应的结构*/
 struct file 
@@ -39,4 +40,5 @@ void bitmap_sync(struct partition *,uint32_t,uint8_t);
 int32_t file_create(struct dir *,char *,uint8_t );
 int32_t file_open(uint32_t,uint8_t);
 int32_t file_close(struct file *);
+int32_t file_write(struct file *,const void *,uint32_t);
 #endif

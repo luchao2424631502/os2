@@ -59,9 +59,11 @@ uint32_t getpid()
   return _syscall0(SYS_GETPID);
 }
 
-uint32_t write(char *str)
+//5-19新的sys_write实现
+uint32_t write(int32_t fd,const void *buf,uint32_t count)
 {
-  return _syscall1(SYS_WRITE,str);
+  // return _syscall1(SYS_WRITE,str);
+  return _syscall3(SYS_WRITE,fd,buf,count);
 }
 
 void *malloc(uint32_t size)

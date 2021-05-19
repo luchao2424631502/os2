@@ -6,6 +6,7 @@
 #include "console.h"
 #include "string.h"
 #include "memory.h"
+#include "fs.h"
 
 /*内核提供调用的函数个数*/
 #define SYSCALL_NR 32
@@ -36,12 +37,13 @@ uint32_t sys_getpid()
 }
 
 /*API_1:简单版write 
- * 向屏幕上输出一段字符串*/
+ * 向屏幕上输出一段字符串
 uint32_t sys_write(char *str)
 {
   console_put_str(str);
   return strlen(str);
 }
+*/
 
 /*
  * sys_malloc()和sys_free()实现在memory.c中

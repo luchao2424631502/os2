@@ -2,6 +2,7 @@
 #include "global.h"
 #include "string.h"
 #include "syscall.h"
+#include "file.h"
 
 #define HEX 16
 #define DEC 10
@@ -113,6 +114,6 @@ uint32_t printf(const char *format,...)
   char buf[K] = {0};
   vsprintf(buf,format,args);
   va_end(args);
-  return write(buf);
+  return write(stdout_no,buf,strlen(buf));
 }
 
