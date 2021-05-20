@@ -39,30 +39,8 @@ int main()
   thread_start("k_thread_a",31,k_thread_a,"argA ");
   thread_start("k_thread_b",31,k_thread_b,"argB ");
 
-  uint32_t fd = sys_open("/file1",O_RDWR);
-  printf("open /file1, fd:%d\n",fd);
-  char buf[64] = {0};
-  int read_bytes = sys_read(fd,buf,18);
-  printf("1_read %d bytes:\n%s\n",read_bytes,buf);
+  printf("/file1 delete %s!\n",sys_unlink("/file1") == 0 ? "done":"fail");
 
-  memset(buf,0,64);
-  read_bytes = sys_read(fd,buf,6);
-  printf("2_read %d bytes:\n%s",read_bytes,buf);
-
-  memset(buf,0,64);
-  read_bytes = sys_read(fd,buf,6);
-  printf("3_read %d bytes:\n%s",read_bytes,buf);
-
-  // printf("________  close file1 and reopen  ________\n");
-  printf("________  SEEK_SET  ________\n");
-  // sys_close(fd);
-  // sys_lseek(fd,0,SEEK_SET);
-  sys_lseek(fd,-6,SEEK_CUR);
-  memset(buf,0,64);
-  read_bytes = sys_read(fd,buf,24);
-  printf("4_read %d bytes:\n%s",read_bytes,buf);
-
-  sys_close(fd);
   while(1){}
   return 0;
 }

@@ -118,7 +118,8 @@ mfree_page(粒度:页)流程:
 4. 5-19实现文件写入sys_write()
 5. 5-19实现文件读取sys_read()
 6. 5-20实现文件定位sys_lseek()
-7. 
+7. 5-20实现文件删除sys_unlink()
+8. 
 
 
 

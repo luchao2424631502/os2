@@ -21,4 +21,6 @@ void inode_sync(struct partition *,struct inode *,void *);
 struct inode *inode_open(struct partition *,uint32_t );
 void inode_close(struct inode *);
 void inode_init(uint32_t,struct inode *);
+void inode_delete(struct partition *,uint32_t,void *);
+void inode_release(struct partition *,uint32_t);
 #endif
