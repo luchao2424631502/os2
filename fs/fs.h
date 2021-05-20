@@ -53,4 +53,5 @@ int32_t sys_write(int32_t,const void *,uint32_t);//代替userprog/syscall-init.c
 int32_t sys_read(int32_t,void *,uint32_t);
 int32_t sys_lseek(int32_t,int32_t,uint8_t);
 int32_t sys_unlink(const char *);
+int32_t sys_mkdir(const char *);
 #endif

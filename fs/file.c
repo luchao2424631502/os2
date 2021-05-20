@@ -460,6 +460,7 @@ int32_t file_write(struct file *file,const void *buf,uint32_t count)
     //src = buf,是待写入的数据
     memcpy(io_buf + sec_off_bytes,src,chunk_size);
     ide_write(cur_part->my_disk,sec_lba,io_buf,1);
+    //待注释
     printk("file write at lba 0x%x\n",sec_lba);
 
     src += chunk_size;
