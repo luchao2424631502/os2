@@ -427,6 +427,39 @@ int32_t sys_read(int32_t fd,void *buf,uint32_t count)
   return file_read(&file_table[global_fd],buf,count);
 }
 
+/**/
+int32_t sys_lseek(int32_t fd,int32_t offset,uint8_t whence)
+{
+  if (fd < 0)
+  {
+    printk("fs/fs.c sys_lseek(): fd error\n");
+    return -1;
+  }
+
+  ASSERT(whence > 0 && whence < 4);
+  uint32_t global_fd = fd_local2global(fd);
+  struct file *pf = &file_table[global_fd];
+  int32_t new_pos = 0;
+  int32_t file_size = (int32_t)pf->fd_inode->i_size;
+  
+  switch(whence)
+  {
+    case SEEK_SET:    //相对于文件开头
+      new_pos = offset;
+      break;
+    case SEEK_CUR:    //相对于文件当前打开的指针
+      new_pos = (int32_t)pf->fd_pos + offset;
+      break;
+    case SEEK_END:    //相对于file_size
+      new_pos = file_size + offset;
+      break;
+  }
+  if (new_pos < 0 || new_pos > (file_size - 1))
+    return -1;
+  pf->fd_pos = new_pos;
+  return pf->fd_pos;
+}
+
 /*文件系统初始化*/
 void filesys_init()
 {

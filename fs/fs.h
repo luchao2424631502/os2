@@ -8,8 +8,10 @@
 #define BITS_PER_SECTOR     4096
 #define SECTOR_SIZE         512
 #define BLOCK_SIZE  SECTOR_SIZE
+
 #define MAX_PATH_LEN  512       //路径最大长度
 
+/*文件类型*/
 enum file_types
 {
   FT_UNKNOWN,   //不支持
@@ -17,7 +19,7 @@ enum file_types
   FT_DIRECTORY  //目录
 };
 
-//打开文件的选项
+/*打开文件的选项*/
 enum oflags
 {
   O_RDONLY,   //read only
@@ -26,6 +28,15 @@ enum oflags
   O_CREAT=4   //create file
 };
 
+/*文件读写位置偏移量*/
+enum whence
+{
+  SEEK_SET = 1,
+  SEEK_CUR,
+  SEEK_END
+};
+
+/*记录查找文件过程中已经找到的上级路径,*/
 struct path_search_record
 {
   char searched_path[MAX_PATH_LEN];   //父路径
@@ -40,4 +51,5 @@ int32_t sys_open(const char *,uint8_t);
 int32_t sys_close(int32_t);
 int32_t sys_write(int32_t,const void *,uint32_t);//代替userprog/syscall-init.c中的原来的sys_write()
 int32_t sys_read(int32_t,void *,uint32_t);
+int32_t sys_lseek(int32_t,int32_t,uint8_t);
 #endif
