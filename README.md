@@ -113,15 +113,24 @@ mfree_page(粒度:页)流程:
 ## 文件系统开始 2021-5-9
 
 1. 5-12完成创建文件系统,
+
 2. 5-18实现sys_open()中的文件创建
+
 3. 5-18实现sys_open()文件的打开,和文件的关闭
+
 4. 5-19实现文件写入sys_write()
+
 5. 5-19实现文件读取sys_read()
+
 6. 5-20实现文件定位sys_lseek()
+
 7. 5-20实现文件删除sys_unlink()
+
 8. 5-20实现创建目录sys_mkdir()
 
+9. 5-20实现遍历目录-1.打开和关闭目录 sys_opendir(),sys_closedir()-2.sys_readdir()和sys_rewinddir()
 
+   > fs/fs.c sys_opendir(): line 653 判断应该有问题(待修改)
 
 
 

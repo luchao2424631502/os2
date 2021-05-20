@@ -363,3 +363,74 @@ bool delete_dir_entry(struct partition *part,struct dir *pdir,uint32_t inode_no,
   //在块中没有找到对应的目录项
   return false;
 }
+
+/*读取目录,成功返回1个目录项,失败返回NULL*/
+struct dir_entry *dir_read(struct dir *dir)
+{
+  struct dir_entry *dir_e = (struct dir_entry *)dir->dir_buf;
+  struct inode *dir_inode = dir->inode;
+
+  uint32_t all_blocks[140] = {0};
+  uint32_t block_cnt = 12;
+  uint32_t block_idx = 0, dir_entry_idx = 0;
+  
+  //将目录所有的块地址都读取到all_blocks(内存中)来
+  while (block_idx < 12)
+  {
+    all_blocks[block_idx] = dir_inode->i_sectors[block_idx];
+    block_idx++;
+  }
+  //判断一级间接表是否存在
+  if (dir_inode->i_sectors[12] != 0)
+  {
+    ide_read(cur_part->my_disk,dir_inode->i_sectors[12],all_blocks + 12,1);
+    block_cnt = 140;//将128个块读入
+  }
+  
+  block_idx = 0;
+
+  uint32_t cur_dir_entry_pos = 0;
+  uint32_t dir_entry_size = cur_part->sb->dir_entry_size;   //目录项大小(常量)
+  uint32_t dir_entrys_per_sec = SECTOR_SIZE / dir_entry_size;//一扇区可容纳的目录项个数(常量)
+
+  //遍历所有块
+  while (block_idx < block_cnt)
+  {
+    //目录项的偏移超过了目录项的总大小
+    if (dir->dir_pos >= dir_inode->i_size)
+    {
+      return NULL;
+    }
+
+    if (all_blocks[block_idx] == 0)//此块为空
+    {
+      block_idx++;
+      continue;
+    }
+    memset(dir_e,0,SECTOR_SIZE);
+    //将该目录的block_idx个块读入内存中
+    ide_read(cur_part->my_disk,all_blocks[block_idx],dir_e,1);
+    dir_entry_idx = 0;
+    /*遍历扇区中所有的目录项*/
+    while (dir_entry_idx < dir_entrys_per_sec)
+    {
+      if ((dir_e + dir_entry_idx)->f_type)//目录项不等于FT_UNKNOWN
+      {
+        //曾经返回过,因为<dir_pos,所以更新信息后直接跳到下一个
+        if (cur_dir_entry_pos < dir->dir_pos)
+        {
+          cur_dir_entry_pos += dir_entry_size;
+          dir_entry_idx++;
+          continue;
+        }
+        //更新到了新的
+        ASSERT(cur_dir_entry_pos == dir->dir_pos);
+        dir->dir_pos += dir_entry_size;
+        return dir_e + dir_entry_idx;//总体循环到了这一项
+      }
+      dir_entry_idx++;
+    }
+    block_idx++;//下一个扇区
+  }
+  return NULL;
+}

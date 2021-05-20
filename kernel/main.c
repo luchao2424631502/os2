@@ -17,6 +17,7 @@
 
 #include "file.h"
 #include "fs.h"
+#include "dir.h"
 
 void k_thread_a(void *);
 void k_thread_b(void *);
@@ -32,37 +33,14 @@ int main()
   init_all();
 
   /*用户进程*/
-  process_execute(u_prog_a,"user_prog_a");
-  process_execute(u_prog_b,"user_prog_b");
+  // process_execute(u_prog_a,"user_prog_a");
+  // process_execute(u_prog_b,"user_prog_b");
 
   /*需要通过kernel线程来打印用户进程Pid,因为用户进程没有权限使用console_put_xxx*/
-  thread_start("k_thread_a",31,k_thread_a,"argA ");
-  thread_start("k_thread_b",31,k_thread_b,"argB ");
+  // thread_start("k_thread_a",31,k_thread_a,"argA ");
+  // thread_start("k_thread_b",31,k_thread_b,"argB ");
 
-//
-  // int32_t fd = sys_open("/file1", O_RDWR);
-  // printf("open /file1, fd:%d\n", fd);
-  // char buf[64] = {0};
-  // int read_bytes = sys_read(fd, buf, 18);
-  // printf("1_ read %d bytes:\n%s\n", read_bytes, buf);
-//
-  // memset(buf, 0, 64);
-  // read_bytes = sys_read(fd, buf, 6);
-  // printf("2_ read %d bytes:\n%s", read_bytes, buf);
-//
-  // memset(buf, 0, 64);
-  // read_bytes = sys_read(fd, buf, 6);
-  // printf("3_ read %d bytes:\n%s", read_bytes, buf);
-//
-  // printf("________  close file1 and reopen  ________\n");
-  // sys_close(fd);
-  // fd = sys_open("/file1", O_RDWR);
-  // memset(buf, 0, 64);
-  // read_bytes = sys_read(fd, buf, 24);
-  // printf("4_ read %d bytes:\n%s", read_bytes, buf);
-//
-  // sys_close(fd);
-
+  /*
   printf("/dir1/subdir1 create %s!\n", sys_mkdir("/dir1/subdir1") == 0 ? "done" : "fail");
   printf("/dir1 create %s!\n", sys_mkdir("/dir1") == 0 ? "done" : "fail");
   printf("now, /dir1/subdir1 create %s!\n", sys_mkdir("/dir1/subdir1") == 0 ? "done" : "fail");
@@ -75,6 +53,59 @@ int main()
     sys_read(fd, buf, 21); 
     printf("/dir1/subdir1/file2 says:\n%s", buf);
     sys_close(fd);
+  }
+  */
+
+  /*
+  struct dir *p_dir = sys_opendir("/dir1/subdir1");
+  if (p_dir)
+  {
+    printf("/dir1/subdir1 open done\n");
+    if (sys_closedir(p_dir) == 0)
+    {
+      printf("/dir1/subdir1 close done\n");
+    }
+    else 
+    {
+      printf("/dir1/subdir1 close fail\n");
+    }
+  }
+  else 
+  {
+    printf("/dir1/subdir1 open fail\n");
+  }
+  */
+
+  struct dir *p_dir = sys_opendir("/dir1/subdir1");
+  if (p_dir)
+  {
+    printf("/dir1/subdir1 open done\ncontent:\n");
+    char *type = 0;
+    struct dir_entry *dir_e = NULL;
+    while ((dir_e = sys_readdir(p_dir)))
+    {
+      if (dir_e->f_type == FT_REGULAR)
+      {
+        type = "regular";
+      }
+      else 
+      {
+        type = "directory";
+      }
+      printf("  %s  %s\n",type,dir_e->filename);
+    }
+    if (sys_closedir(p_dir) == 0)
+    {
+      printf("/dir1/subdir1 close done\n");
+    }
+    else 
+    {
+      printf("/dir1/subdir1 close fail\n");
+    }
+  }
+  else 
+  {
+    printf("/dir1/subdir1 open fail\n");
   }
 
   while(1){}
