@@ -34,4 +34,6 @@ void create_dir_entry(char *,uint32_t,uint8_t,struct dir_entry *);
 bool sync_dir_entry(struct dir *,struct dir_entry *,void *);
 bool delete_dir_entry(struct partition *,struct dir *,uint32_t,void *);
 struct dir_entry* dir_read(struct dir*);
+bool dir_is_empty(struct dir *);
+int32_t dir_remove(struct dir *,struct dir *);
 #endif

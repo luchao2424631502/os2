@@ -52,10 +52,11 @@ int32_t sys_close(int32_t);
 int32_t sys_write(int32_t,const void *,uint32_t);//代替userprog/syscall-init.c中的原来的sys_write()
 int32_t sys_read(int32_t,void *,uint32_t);
 int32_t sys_lseek(int32_t,int32_t,uint8_t);
-int32_t sys_unlink(const char *);
+int32_t sys_unlink(const char *);//删除文件
 int32_t sys_mkdir(const char *);
 struct dir *sys_opendir(const char *);
 int32_t sys_closedir(struct dir *);
 struct dir_entry *sys_readdir(struct dir *);
 void sys_rewinddir(struct dir *);
+int32_t sys_rmdir(const char *);
 #endif

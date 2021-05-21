@@ -707,6 +707,47 @@ void sys_rewinddir(struct dir *dir)
   dir->dir_pos = 0;
 }
 
+/*删除空目录,success=0,失败返回-1*/
+int32_t sys_rmdir(const char *pathname)
+{
+  //搜索待删除的目录项是否存在
+  struct path_search_record searched_record;
+  memset(&searched_record,0,sizeof(struct path_search_record));
+  int inode_no = search_file(pathname,&searched_record);
+  ASSERT(inode_no != 0);
+  int retval = -1;
+  if (inode_no == -1)//没有找到此目录项
+  {
+    printk("fs/fs.c sys_rmdir(): In %s, sub path %s not exist\n",pathname,searched_record.searched_path);
+  }
+  else 
+  {
+    if (searched_record.file_type == FT_REGULAR)
+    {
+      printk("%s is regular file\n",pathname);
+    }
+    else 
+    {
+      struct dir *dir = dir_open(cur_part,inode_no);
+      if (!dir_is_empty(dir))//判断此目录是否非空
+      {
+        printk("dir %s is not empty, it is not allowed to delete a nonempty directory!\n",pathname);
+      }
+      else 
+      {
+        //删除目录,父目录由searched_record.parent_dir得来
+        if (!dir_remove(searched_record.parent_dir,dir))//成功返回0
+        {
+          retval = 0;
+        }
+      }
+      dir_close(dir);
+    }
+  }
+  dir_close(searched_record.parent_dir);
+  return retval;
+}
+
 /*文件系统初始化*/
 void filesys_init()
 {
