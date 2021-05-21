@@ -892,6 +892,39 @@ int32_t sys_chdir(const char *path)
   return ret;
 }
 
+/**/
+int32_t sys_stat(const char *path,struct stat *buf)
+{
+  //查看根目录的信息
+  if (!strcmp(path,"/") || !strcmp(path,"/.") || !strcmp(path,"/.."))
+  {
+    buf->st_filetype = FT_DIRECTORY;
+    buf->st_ino = 0;
+    buf->st_size = root_dir.inode->i_size;
+  }
+
+  int32_t ret = -1;
+  struct path_search_record searched_record;
+  memset(&searched_record,0,sizeof(struct path_search_record));
+  int inode_no = search_file(path,&searched_record);
+  //存在
+  if (inode_no != -1)
+  {
+    struct inode *obj_inode = inode_open(cur_part,inode_no);
+    buf->st_size = obj_inode->i_size;
+    inode_close(obj_inode);
+    buf->st_filetype = searched_record.file_type;
+    buf->st_ino = inode_no;
+    ret = 0;
+  }
+  else 
+  {
+    printk("fs/fs.c sys_stat(): %s not found\n",path);
+  }
+  dir_close(searched_record.parent_dir);
+  return ret;
+}
+
 /*文件系统初始化*/
 void filesys_init()
 {
