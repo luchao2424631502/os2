@@ -97,6 +97,7 @@ struct task_struct
   /*2021-5-1: 添加每个用于进程的mem_block_desc[]*/
   struct mem_block_desc u_block_desc[DESC_CNT];
   
+  uint32_t cwd_inode_nr;        //进程所在工作目录的inode
   //魔数用来检测pcb栈边界
   uint32_t stack_magic;
 };

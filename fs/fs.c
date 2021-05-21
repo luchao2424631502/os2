@@ -11,6 +11,7 @@
 #include "string.h"
 #include "list.h"
 #include "console.h"
+#include "thread.h"
 
 //默认情况下操作的是哪一个分区
 struct partition *cur_part;
@@ -746,6 +747,149 @@ int32_t sys_rmdir(const char *pathname)
   }
   dir_close(searched_record.parent_dir);
   return retval;
+}
+
+/*给出child inode no,得到父目录的inode no*/
+static uint32_t get_parent_dir_inode_nr(uint32_t child_inode_nr,void *io_buf)
+{
+  //打开子目录的inode struct 
+  struct inode *child_dir_inode = inode_open(cur_part,child_inode_nr);
+  // . 和 .. 目录肯定在第1个扇区
+  uint32_t block_lba = child_dir_inode->i_sectors[0];
+  ASSERT(block_lba >= cur_part->sb->data_start_lba);
+  inode_close(child_dir_inode);
+  ide_read(cur_part->my_disk,block_lba,io_buf,1);
+  struct dir_entry *dir_e = (struct dir_entry *)io_buf;
+  ASSERT(dir_e[1].i_no < 4096 && dir_e[1].f_type == FT_DIRECTORY);
+  return dir_e[1].i_no;
+}
+
+/*在inode为inode_nr的目录中查找inode为c_inode_nr的子目录名字
+ *  失败返回-1
+ * */
+static int get_child_dir_name(uint32_t p_inode_nr,uint32_t c_inode_nr,char *path,void *io_buf)
+{
+  struct inode *parent_dir_inode = inode_open(cur_part,p_inode_nr);
+  uint8_t block_idx = 0;
+  uint32_t all_blocks[140] = {0},block_cnt = 12;
+  while (block_idx < 12)
+  {
+    all_blocks[block_idx] = parent_dir_inode->i_sectors[block_idx];
+    block_idx++;
+  }
+
+  //一级间接表存在
+  if (parent_dir_inode->i_sectors[12])
+  {
+    ide_read(cur_part->my_disk,parent_dir_inode->i_sectors[12],all_blocks+12,1);
+    block_cnt = 140;
+  }
+  //关闭父目录的inode
+  inode_close(parent_dir_inode);
+
+  struct dir_entry *dir_e = (struct dir_entry *)io_buf;
+  uint32_t dir_entry_size = cur_part->sb->dir_entry_size;//常量
+  uint32_t dir_entrys_per_sec = SECTOR_SIZE / dir_entry_size;//常量
+  block_idx = 0;
+  //遍历所有的扇区(块),寻找c_inode_nr
+  while (block_idx < block_cnt)
+  {
+    if (all_blocks[block_idx])//当前块存在
+    {
+      ide_read(cur_part->my_disk,all_blocks[block_idx],io_buf,1);
+      uint8_t dir_e_idx = 0;
+      //遍历扇区的每一个目录项
+      while (dir_e_idx < dir_entrys_per_sec)
+      {
+        //找到了
+        if ((dir_e + dir_e_idx)->i_no == c_inode_nr)
+        {
+          strcat(path,"/");
+          strcat(path,(dir_e + dir_e_idx)->filename);
+          return 0;
+        }
+        dir_e_idx++;
+      }
+    }
+    block_idx++;
+  }
+  return -1;//说明没找到
+}
+
+/*得到当前工作目录.如果buf==null,此函数自行分配,由用户释放,(但是目前假设buf!=NULL*/
+char *sys_getcwd(char *buf,uint32_t size)
+{
+  ASSERT(buf != NULL);
+  void *io_buf = sys_malloc(SECTOR_SIZE);
+  if (io_buf == NULL)
+  {
+    return NULL;
+  }
+
+  struct task_struct *cur_thread = running_thread();
+  int32_t parent_inode_nr = 0;
+  int32_t child_inode_nr = cur_thread->cwd_inode_nr;
+  ASSERT(child_inode_nr >= 0 && child_inode_nr < 4096);
+  if (child_inode_nr == 0)//进程当前工作目录是根目录
+  {
+    buf[0] = '/';
+    buf[1] = 0;
+    return buf;
+  }
+
+  memset(buf,0,size);
+  char full_path_reverse[MAX_PATH_LEN] = {0};
+
+  //将当前目录向上查找直到找到根目录为止
+  while ((child_inode_nr))
+  {
+    parent_inode_nr = get_parent_dir_inode_nr(child_inode_nr,io_buf);
+    if (get_child_dir_name(parent_inode_nr,child_inode_nr,full_path_reverse,io_buf) == -1)
+    {
+      sys_free(io_buf);
+      return NULL;
+    }
+    child_inode_nr = parent_inode_nr;
+  }
+  ASSERT(strlen(full_path_reverse) <= size);
+
+  char *last_slash;
+  while ((last_slash = strrchr(full_path_reverse,'/')))
+  {
+    uint16_t len = strlen(buf);
+    strcpy(buf + len,last_slash);
+    //1.作为strcpy的边界,2.使下一个/作为strrchr()的第一个出现的/
+    *last_slash = 0;
+  }
+  sys_free(io_buf);
+  return buf;
+}
+
+//更改当前工作目录为path,成功返回0,失败返回-1
+int32_t sys_chdir(const char *path)
+{
+  int32_t ret = -1;
+  //先判断path是否存在
+  struct path_search_record searched_record;
+  memset(&searched_record,0,sizeof(struct path_search_record));
+  int inode_no = search_file(path,&searched_record);
+  if (inode_no != -1)//存在
+  {
+    //文件类型是目录
+    if (searched_record.file_type == FT_DIRECTORY)
+    {
+      /*核心:证明path存在,然后直接修改当前进程的cwd_inode_nr*/
+      running_thread()->cwd_inode_nr = inode_no;
+      ret = 0;
+    }
+    //其它类型
+    else 
+    {
+      printk("fs/fs.c sys_chdir(): %s is regular file or other\n",path);
+    }
+  }
+  dir_close(searched_record.parent_dir);
+  return ret;
 }
 
 /*文件系统初始化*/

@@ -132,7 +132,8 @@ mfree_page(粒度:页)流程:
 
    > fs/fs.c sys_opendir(): line 653 判断应该有问题(待修改)
 
-10. 5-21实现删除目录
+10. 5-21实现删除目录sys_rmdir()
+11. 5-12实现获得当前工作目录sys_getcwd(),和切换工作目录sys_chdir()
 
 
 

@@ -110,6 +110,7 @@ void init_thread(struct task_struct *thread,char *name,int prio)
     fd_idx++;
   }
 
+  thread->cwd_inode_nr = 0;//根目录作为默认的工作路径
   thread->stack_magic = 0x20010522;
 }
 
