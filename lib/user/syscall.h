@@ -9,7 +9,8 @@ enum SYSCALL_NR{
   SYS_GETPID,
   SYS_WRITE,
   SYS_MALLOC,
-  SYS_FREE
+  SYS_FREE,
+  SYS_FORK
 };
 
 /*用户空间api的函数声明*/
@@ -20,5 +21,7 @@ uint32_t write(int32_t,const void *,uint32_t);
 void *malloc(uint32_t);
 
 void free(void *);
+
+int16_t fork();
 
 #endif

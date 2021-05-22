@@ -133,11 +133,15 @@ mfree_page(粒度:页)流程:
    > fs/fs.c sys_opendir(): line 653 判断应该有问题(待修改)
 
 10. 5-21实现删除目录sys_rmdir()
-11. 5-12实现获得当前工作目录sys_getcwd(),和切换工作目录sys_chdir()
+11. 5-21实现获得当前工作目录sys_getcwd(),和切换工作目录sys_chdir()
+12. 5-21实现读取文件属性sys_stat()
 
 
 
+## IPC 2021-5-21
 
+1. 5-22 sys_fork()的实现,添加fork()系统调用
+2. 实现init进程,由loader->init进程
 
 ## 以下是写的过程中的一些tips
 

@@ -78,4 +78,6 @@ void mfree_page(enum pool_flags,void *addr,uint32_t);
 void pfree(uint32_t);
 void sys_free(void*);
 
+void *get_a_page_without_opvaddrbitmap(enum pool_flags,uint32_t);
+
 #endif

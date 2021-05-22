@@ -1,3 +1,4 @@
+#include "main.h"
 #include "print.h"
 #include "init.h"
 #include "debug.h"
@@ -19,13 +20,6 @@
 #include "fs.h"
 #include "dir.h"
 
-void k_thread_a(void *);
-void k_thread_b(void *);
-
-void u_prog_a();
-void u_prog_b();
-int prog_a_pid = 0;
-int prog_b_pid = 0;
 
 int main()
 {
@@ -40,101 +34,20 @@ int main()
   // thread_start("k_thread_a",31,k_thread_a,"argA ");
   // thread_start("k_thread_b",31,k_thread_b,"argB ");
 
-  struct stat obj_stat;
-  sys_stat("/",&obj_stat);
-  printf("/ info\n    i_no:%d\n    size:%d\n    filetype:%s\n",obj_stat.st_ino,obj_stat.st_size,obj_stat.st_filetype==2?"directory":"regular");
-
-  sys_stat("/dir1",&obj_stat);
-  printf("/dir1 info\n    i_no:%d\n    size:%d\n    filetype:%s\n",obj_stat.st_ino,obj_stat.st_size,obj_stat.st_filetype==2?"directory":"regular");
-
   while(1){}
   return 0;
 }
 
-//测试sys_free()
-void k_thread_a(void *arg)
+void init()
 {
-  void *addr1 = sys_malloc(256);
-  void *addr2 = sys_malloc(255);
-  void *addr3 = sys_malloc(254);
-  console_put_str(" thread_a malloc addr:0x");
-  console_put_int((int)addr1);
-  console_put_str(",");
-  console_put_int((int)addr2);
-  console_put_char(',');
-  console_put_int((int)addr3);
-  console_put_char('\n');
-
-  int cpu_delay = 100000;
-  while (cpu_delay-- > 0)
-  {}
-
-  sys_free(addr1);
-  sys_free(addr2);
-  sys_free(addr3);
-
-  while (1) {}
-}
-
-void k_thread_b(void *arg)
-{
-  void *addr1 = sys_malloc(256);
-  void *addr2 = sys_malloc(255);
-  void *addr3 = sys_malloc(254);
-  console_put_str(" thread_b malloc addr:0x");
-  console_put_int((int)addr1);
-  console_put_str(",");
-  console_put_int((int)addr2);
-  console_put_char(',');
-  console_put_int((int)addr3);
-  console_put_char('\n');
-
-  int cpu_delay = 100000;
-  while (cpu_delay-- > 0)
-  {}
-
-  sys_free(addr1);
-  sys_free(addr2);
-  sys_free(addr3);
-
-  while (1) {}
-}
-
-void u_prog_a()
-{
-  /*为什么ring 3程序调用不了sys_getpid()?
-   * 因为当前选择子调用分页中的Kernel描述符权限不够
-   * */
-  // printf(" printf_prog_a_pid:0x%x\n",getpid());
-
-  void *addr1 = malloc(256);
-  void *addr2 = malloc(255);
-  void *addr3 = malloc(254);
-  printf(" prog_a malloc addr:0x%x,0x%x,0x%x\n",(int)addr1,(int)addr2,(int)addr3);
-
-  int cpu_delay = 100000;
-  while (cpu_delay-- > 0)
-  {}
-  free(addr1);
-  free(addr2);
-  free(addr3);
-
-  while (1) {}
-}
-
-void u_prog_b()
-{
-  void *addr1 = malloc(256);
-  void *addr2 = malloc(255);
-  void *addr3 = malloc(254);
-  printf(" prog_b malloc addr:0x%x,0x%x,0x%x\n",(int)addr1,(int)addr2,(int)addr3);
-
-  int cpu_delay = 100000;
-  while (cpu_delay-- > 0)
-  {}
-  free(addr1);
-  free(addr2);
-  free(addr3);
-
-  while (1) {}
+  uint32_t ret_pid = fork();
+  if (ret_pid)
+  {
+    printf("father,pid is %d,child pid is %d\n",getpid(),ret_pid);
+  }
+  else 
+  {
+    printf("child,pid is %d,ret pid is %d\n",getpid(),ret_pid);
+  }
+  while(1);
 }

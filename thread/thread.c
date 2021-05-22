@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "process.h"
 #include "sync.h"
+#include "main.h"
 
 extern void switch_to(struct task_struct *,struct task_struct *);
 
@@ -56,6 +57,12 @@ static pid_t allocate_pid()
   next_pid++;
   lock_release(&pid_lock);
   return next_pid;
+}
+
+/*分配pid*/
+pid_t fork_pid()
+{
+  return allocate_pid();
 }
 
 /*初始化线程栈,*/
@@ -111,6 +118,7 @@ void init_thread(struct task_struct *thread,char *name,int prio)
   }
 
   thread->cwd_inode_nr = 0;//根目录作为默认的工作路径
+  thread->parent_pid = -1;
   thread->stack_magic = 0x20010522;
 }
 
@@ -250,10 +258,15 @@ void thread_yield()
 void thread_init()
 {
   put_str("[thread_init] start\n");
+
   list_init(&thread_ready_list);
   list_init(&thread_all_list);
   //2021-4-29 初始化allocate_pid()中的pid_lock
   lock_init(&pid_lock);
+
+  /*2021-5-22: 在main和idle线程创建前先创建init用户进程,是第一个用户进程,也是所有用户进程的父亲*/
+  process_execute(init,"init");
+
   //将main函数包装成线程
   make_main_thread();
 

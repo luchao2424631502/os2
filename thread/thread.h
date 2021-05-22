@@ -65,6 +65,7 @@ struct thread_stack
 
   void (*eip) (thread_func* func,void *func_arg);
 
+/* 下面的参数只是第一次填充时供调度上cpu,后面的thread栈就不再使用下面的参数了*/
   void (*unused_retaddr); //call调用函数按照C约定栈顶是返回地址,所以这类伪装成返回地址
   thread_func* function;
   void* func_arg;
@@ -98,6 +99,7 @@ struct task_struct
   struct mem_block_desc u_block_desc[DESC_CNT];
   
   uint32_t cwd_inode_nr;        //进程所在工作目录的inode
+  int16_t parent_pid;
   //魔数用来检测pcb栈边界
   uint32_t stack_magic;
 };
@@ -118,4 +120,5 @@ void thread_block(enum task_status);
 void thread_unblock(struct task_struct *);
 
 void thread_yield();
+pid_t fork_pid();
 #endif

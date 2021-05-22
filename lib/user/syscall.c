@@ -4,6 +4,7 @@
  * 通过int 0x80所以封装int 0x80并且帮助传递参数
  * */
 #include "syscall.h"
+#include "thread.h"
 
 /*无参数的系统调用*/
 #define _syscall0(NUMBER) ({    \
@@ -74,4 +75,9 @@ void *malloc(uint32_t size)
 void free(void *ptr)
 {
   _syscall1(SYS_FREE,ptr);
+}
+
+pid_t fork()
+{
+  return _syscall0(SYS_FORK);
 }
