@@ -10,7 +10,10 @@ enum SYSCALL_NR{
   SYS_WRITE,
   SYS_MALLOC,
   SYS_FREE,
-  SYS_FORK
+  SYS_FORK,
+  SYS_READ,
+  SYS_PUTCHAR,
+  SYS_CLEAR
 };
 
 /*用户空间api的函数声明*/
@@ -23,5 +26,10 @@ void *malloc(uint32_t);
 void free(void *);
 
 int16_t fork();
+
+int32_t read(int32_t,void *,uint32_t);
+
+void putchar(char);
+void clear();
 
 #endif

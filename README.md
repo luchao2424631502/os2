@@ -142,6 +142,11 @@ mfree_page(粒度:页)流程:
 
 1. 5-22 sys_fork()的实现,添加fork()系统调用
 2. 实现init进程,由loader->init进程
+3. 5-22是sys_read()添加处理键盘输入(stdin_no)
+4. 5-22添加putchar(),cls_screen()系统调用
+5. 5-22添加 简单shell
+
+
 
 ## 以下是写的过程中的一些tips
 

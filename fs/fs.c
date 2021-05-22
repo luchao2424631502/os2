@@ -12,6 +12,9 @@
 #include "list.h"
 #include "console.h"
 #include "thread.h"
+#include "ioqueue.h"
+#include "keyboard.h"
+#include "console.h"
 
 //默认情况下操作的是哪一个分区
 struct partition *cur_part;
@@ -418,14 +421,31 @@ int32_t sys_write(int32_t fd,const void *buf,uint32_t count)
 /*从fd中读取count个字节到buf中,正常返回读取到的字节,失败返回-1*/
 int32_t sys_read(int32_t fd,void *buf,uint32_t count)
 {
-  if (fd < 0)
+  ASSERT(buf != NULL);
+  int32_t ret = -1;
+  if (fd < 0 || fd == stdout_no || fd == stderr_no)
   {
     printk("fs/fs.c sys_read(): fd error\n");
-    return -1;
   }
-  ASSERT(buf != NULL);
-  uint32_t global_fd = fd_local2global(fd);
-  return file_read(&file_table[global_fd],buf,count);
+  else if (fd == stdin_no)
+  {
+    char *buffer = buf;
+    uint32_t bytes_read = 0;
+    while (bytes_read < count)
+    {
+      /*在keyboard.c中向ioqueue中加入添加的字符(生产),这里来消费*/
+      *buffer = ioq_getchar(&kbd_buf); 
+      bytes_read++;
+      buffer++;
+    }
+    ret = (bytes_read == 0 ? -1 : (int32_t)bytes_read);
+  }
+  else//普通情况 
+  {
+    uint32_t global_fd = fd_local2global(fd);
+    ret = file_read(&file_table[global_fd],buf,count);
+  }
+  return ret;
 }
 
 /**/
@@ -923,6 +943,12 @@ int32_t sys_stat(const char *path,struct stat *buf)
   }
   dir_close(searched_record.parent_dir);
   return ret;
+}
+
+//向屏幕输出一个字符
+void sys_putchar(char char_asci)
+{
+  console_put_char(char_asci);
 }
 
 /*文件系统初始化*/

@@ -70,4 +70,5 @@ int32_t sys_rmdir(const char *);
 char *sys_getcwd(char *,uint32_t);
 int32_t sys_chdir(const char *);
 int32_t sys_stat(const char *,struct stat *);
+void sys_putchar(char);
 #endif

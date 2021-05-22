@@ -3,7 +3,7 @@ ENTRY_POINT=0xc0001500
 AS				 =nasm
 CC  			 =gcc
 LD 				 =ld
-INCLUDE		 =-I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/ -I fs/
+INCLUDE		 =-I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/ -I fs/ -I lib/shell
 ASFLAGS    =-f elf
 CFLAGS     =-Wall $(INCLUDE) -c -m32 -fno-builtin -fno-stack-protector -W -Wno-implicit-fallthrough#-Wmissing-prototypes -Wstrict-prototypes
 #Wall 和 W 是警告信息,Wstrict-prototypes:函数声明需要指出参数类型  Wmissing-prototypes:没有预先声明函数旧定义全局函数将警告
@@ -16,7 +16,8 @@ OBJS       =$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o $(B
 						$(BUILD_DIR)/tss.o $(BUILD_DIR)/process.o $(BUILD_DIR)/syscall.o\
 						$(BUILD_DIR)/syscall-init.o $(BUILD_DIR)/stdio.o $(BUILD_DIR)/stdio-kernel.o\
 						$(BUILD_DIR)/ide.o $(BUILD_DIR)/fs.o $(BUILD_DIR)/inode.o\
-						$(BUILD_DIR)/file.o $(BUILD_DIR)/dir.o $(BUILD_DIR)/fork.o
+						$(BUILD_DIR)/file.o $(BUILD_DIR)/dir.o $(BUILD_DIR)/fork.o\
+						$(BUILD_DIR)/shell.o $(BUILD_DIR)/assert.o
 BOOTLOADER = $(BUILD_DIR)/mbr.bin $(BUILD_DIR)/loader.bin
 # ---- boot + loader ----
 $(BUILD_DIR)/mbr.bin: boot/mbr.s
@@ -101,6 +102,12 @@ $(BUILD_DIR)/dir.o:fs/dir.c
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/fork.o:userprog/fork.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/shell.o:lib/shell/shell.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/assert.o:lib/shell/assert.c
 	$(CC) $(CFLAGS) $< -o $@
 
 #---- ASM汇编文件编译 ----
