@@ -144,7 +144,13 @@ mfree_page(粒度:页)流程:
 2. 实现init进程,由loader->init进程
 3. 5-22是sys_read()添加处理键盘输入(stdin_no)
 4. 5-22添加putchar(),cls_screen()系统调用
-5. 5-22添加 简单shell
+5. 5-22实现 简单shell (5-23完成)
+   1. 5-22(keyboard.c中有特殊处理),在shell.c添加ctrl+u/ctrl+l快捷键
+   2. 5-23 解析键入的字符
+   3. 5-23 添加fs.h中未添加的系统调用,增加ps系统调用
+   4. 5-23 实现路径解析转换,在shell.c中测试(将参数(路径)->转化)
+   5. 5-23 实现 ls,cd,mkdir,rmdir,rm,pwd,ps,clear命令
+6. 
 
 
 

@@ -176,9 +176,8 @@ static void partition_format(struct partition *part)
   sys_free(buf);
 }
 
-
-/**/
-static char *path_parse(char *pathname,char *name_store)
+/*将路径的根部的名称解析出来*/
+char *path_parse(char *pathname,char *name_store)
 {
   if (pathname[0] == '/')
   {

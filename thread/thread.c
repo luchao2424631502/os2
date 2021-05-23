@@ -9,6 +9,9 @@
 #include "process.h"
 #include "sync.h"
 #include "main.h"
+#include "stdio.h"
+#include "fs.h"
+#include "file.h"
 
 extern void switch_to(struct task_struct *,struct task_struct *);
 
@@ -252,6 +255,86 @@ void thread_yield()
   cur->status = TASK_READY;
   schedule();
   intr_set_status(old_status);
+}
+
+//
+static void pad_print(char *buf,int32_t buf_len,void *ptr,char format)
+{
+  memset(buf,0,buf_len);
+  uint8_t out_pad_0idx = 0;
+  switch (format)
+  {
+    case 's':
+      out_pad_0idx = sprintf(buf,"%s",ptr);
+      break;
+    case 'd':
+      out_pad_0idx = sprintf(buf,"%d",*((uint16_t *)ptr));
+    case 'x':
+      out_pad_0idx = sprintf(buf,"%x",*((uint32_t *)ptr));
+  }
+  while (out_pad_0idx < buf_len)
+  {
+    buf[out_pad_0idx] = ' ';
+    out_pad_0idx++;
+  }
+  sys_write(stdout_no,buf,buf_len - 1);
+}
+
+/*list_traversal的回调函数,打印每个任务的信息*/
+static bool elem2thread_info(struct list_elem *elem,int arg UNUSED)
+{
+  struct task_struct *thread = elem2entry(struct task_struct,all_list_tag,elem);
+  char out_pad[16] = {0};
+
+  //输出pid
+  pad_print(out_pad,16,&thread->pid,'d');
+
+  if (thread->parent_pid == -1)
+  {
+    pad_print(out_pad,16,"NULL",'s');
+  }
+  else 
+  {
+    pad_print(out_pad,16,&thread->parent_pid,'d');
+  }
+
+  switch(thread->status)
+  {
+    case 0:
+      pad_print(out_pad,16,"RUNNING",'s');
+      break;
+    case 1:
+      pad_print(out_pad,16,"READY",'s');
+      break;
+    case 2:
+      pad_print(out_pad,16,"BLOCKED",'s');
+      break;
+    case 3:
+      pad_print(out_pad,16,"WAITING",'s');
+      break;
+    case 4:
+      pad_print(out_pad,16,"HANGING",'s');
+      break;
+    case 5:
+      pad_print(out_pad,16,"DIED",'s');
+  }
+  pad_print(out_pad,16,&thread->elapsed_ticks,'x');
+
+  //打印进程名
+  memset(out_pad,0,16);
+  ASSERT(strlen(thread->name) < 17);
+  memcpy(out_pad,thread->name,strlen(thread->name));
+  strcat(out_pad,"\n");
+  sys_write(stdout_no,out_pad,strlen(out_pad));
+  return false;
+}
+
+void sys_ps()
+{
+  char* ps_title = "PID            PPID           STAT           TICKS          COMMAND\n";
+  sys_write(stdout_no,ps_title,strlen(ps_title));
+  //遍历所有进程的链表
+  list_traversal(&thread_all_list,elem2thread_info,0);
 }
 
 /*内核线程初始化(调度器)运行前准备*/

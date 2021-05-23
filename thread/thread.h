@@ -16,12 +16,12 @@ typedef int16_t pid_t;
 /*任务的状态*/
 enum task_status
 {
-  TASK_RUNNING, //running
-  TASK_READY,   //ready
-  TASK_BLOCKED, //blocked
-  TASK_WAITING,//waitting
-  TASK_HANGING, //hang
-  TASK_DIED     //died
+  TASK_RUNNING, //0 running
+  TASK_READY,   //1 ready
+  TASK_BLOCKED, //2 blocked
+  TASK_WAITING, //3 waitting
+  TASK_HANGING, //4 hang
+  TASK_DIED     //5 died
 };
 
 /*中断发生时保存上下文的结构*/
@@ -121,4 +121,5 @@ void thread_unblock(struct task_struct *);
 
 void thread_yield();
 pid_t fork_pid();
+void sys_ps();
 #endif
