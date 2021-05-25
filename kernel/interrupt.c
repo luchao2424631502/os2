@@ -14,10 +14,10 @@
  * syscall_handler表示0x80中断的处理函数 
  * */
 #define IDT_DESC_CNT  0x81  
-extern uint32_t syscall_handler(void);
 
 #define EFLAGS_IF 0x00000200
 #define GET_EFLAGS(EFLAG_VAR) asm volatile ("pushfl; popl %0":"=g"(EFLAG_VAR))
+extern uint32_t syscall_handler(void);
 
 struct gate_desc{
   uint16_t func_offset_low_word;
@@ -30,9 +30,9 @@ struct gate_desc{
 static void make_idt_desc(struct gate_desc*,uint8_t,intr_handler);
 
 static struct gate_desc idt[IDT_DESC_CNT]; //IDT表自定义中断的描述符
-extern intr_handler intr_entry_table[IDT_DESC_CNT]; //引用kernel.s中定义的中断处理程序入口 
 char *intr_name[IDT_DESC_CNT];
 intr_handler idt_table[IDT_DESC_CNT]; //C中的中断处理程序入口
+extern intr_handler intr_entry_table[IDT_DESC_CNT]; //引用kernel.s中定义的中断处理程序入口 
 
 /*初始化可编程中断控制器8259A*/
 static void pic_init()
@@ -122,7 +122,7 @@ static void general_intr_handler(uint8_t vec_nr)
     put_int(page_fault_vaddr);
   }
   
-  put_str("[---- excetion ----]\n");
+  put_str("\n[---- excetion ----]\n");
   while(1){}
 }
 

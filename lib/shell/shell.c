@@ -172,9 +172,38 @@ void my_shell()
     {
       buildin_rm(argc,argv);
     }
+    //bash fork一个子进程,然后exec从磁盘上加载命令执行
     else 
     {
-      printf("external command\n");
+      int32_t pid = fork();
+      if (pid)//父进程
+      {
+        while (1);
+      }
+      else//子进程 
+      {
+        make_clear_abs_path(argv[0],final_path);
+        argv[0] = final_path;
+
+        struct stat file_stat;
+        memset(&file_stat,0,sizeof(struct stat));
+        if (stat(argv[0],&file_stat) == -1)
+        {
+          printf("lib/shell/shell.c my_shell(): cannot access %s: No such file or directory\n",argv[0]);
+        }
+        else 
+        {
+          execv(argv[0],argv);
+        }
+        while (1);
+      }
+    }
+
+    int32_t arg_idx = 0;
+    while (arg_idx < MAX_ARG_NR)
+    {
+      argv[arg_idx] = NULL;
+      arg_idx++;
     }
   }
   panic("lib/shell/shell.c my_shell: should not be here\n");

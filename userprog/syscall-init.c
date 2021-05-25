@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "fs.h"
 #include "fork.h"
+#include "exec.h"
 
 /*内核提供调用的函数个数*/
 #define SYSCALL_NR 32
@@ -15,6 +16,13 @@ typedef void* syscall;
 /*系统调用的内核入口*/
 syscall syscall_table[SYSCALL_NR];
 
+/*
+ * API_0:返回当前进程的Pid
+ * */
+uint32_t sys_getpid()
+{
+  return running_thread()->pid; 
+}
 
 /*初始化系统调用,
  * 也就是向syscall_table注册内核调用的函数地址
@@ -45,16 +53,10 @@ void syscall_init()
   syscall_table[SYS_REWINDDIR]=sys_rewinddir;
   syscall_table[SYS_STAT]   = sys_stat;
   syscall_table[SYS_PS]     = sys_ps;
+  syscall_table[SYS_EXECV]  = sys_execv;
   put_str("[syscall_init] done\n");
 }
 
-/*
- * API_0:返回当前进程的Pid
- * */
-uint32_t sys_getpid()
-{
-  return running_thread()->pid; 
-}
 
 /*API_1:简单版write 
  * 向屏幕上输出一段字符串

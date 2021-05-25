@@ -212,7 +212,7 @@ int32_t file_open(uint32_t inode_no,uint8_t flag)
   bool *write_deny = &file_table[fd_idx].fd_inode->write_deny; 
 
   //写文件需要考虑 write_deny,可以多个进程读,但是不能多个进程同时写
-  if (flag & O_WRONLY || flag & O_RDWR)
+  if (flag == O_WRONLY || flag == O_RDWR)
   {
     //关中断避免调度
     enum intr_status old_status = intr_disable();

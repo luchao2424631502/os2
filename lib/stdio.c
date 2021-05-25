@@ -12,8 +12,6 @@
 #define va_arg(ap,t) *((t*)(ap += 4))     //ap指向下一个参数并返回值
 #define va_end(ap) ap=NULL              //清除ap
 
-static void itoa(uint32_t,char **,uint8_t);
-
 /*将int 转化为 ascii*/
 static void itoa(uint32_t value,char **buf_ptr_addr,uint8_t base)
 {
@@ -86,8 +84,6 @@ uint32_t vsprintf(char *buf,const char *format,va_list ap)
         arg_int = va_arg(ap,int);
         itoa(arg_int,&buf_ptr,HEX);
         index_char = *(++index_ptr);
-        break;
-      default:
         break;
     }
   }

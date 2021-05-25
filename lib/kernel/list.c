@@ -107,5 +107,5 @@ uint32_t list_len(struct list *list)
 /*10.判断链表是否为空*/
 bool list_empty(struct list *list)
 {
-  return list->head.next == &list->tail ? true : false;
+  return (list->head.next == &list->tail ? true : false);
 }

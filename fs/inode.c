@@ -205,6 +205,7 @@ void inode_release(struct partition *part,uint32_t inode_no)
   {
     if (all_blocks[block_idx] != 0)
     {
+      block_bitmap_idx = 0;
       block_bitmap_idx = all_blocks[block_idx] - part->sb->data_start_lba;
       ASSERT(block_bitmap_idx > 0);
       bitmap_set(&part->block_bitmap,block_bitmap_idx,0);

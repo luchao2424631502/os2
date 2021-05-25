@@ -6,6 +6,7 @@
 #include "bitmap.h"
 #include "memory.h"
 
+#define TASK_NAME_LEN 16
 #define MAX_FILES_OPEN_PER_PROC 8
 
 /*定义了一个函数类型,内核线程函数*/
@@ -77,16 +78,13 @@ struct task_struct
   uint32_t *self_kstack;
   pid_t pid;
   enum task_status status;
-  char name[16];
+  char name[TASK_NAME_LEN];
   uint8_t priority;
 
   //2020/4/2:task_struct添加新成员
   uint8_t ticks; //每次上cpu指向的tick数(时间片)
   uint32_t elapsed_ticks;//一共占用了多少cpu的tick数
 
-  /*5-14添加文件描述符数组*/
-  int32_t fd_table[MAX_FILES_OPEN_PER_PROC];
-  
   struct list_elem general_tag; //双向链表(调度队列)中的节点标签
   struct list_elem all_list_tag;//线程队列(管理所有线程的队列)的节点标签
 
@@ -97,6 +95,9 @@ struct task_struct
   struct virtual_addr userprog_vaddr;
   /*2021-5-1: 添加每个用于进程的mem_block_desc[]*/
   struct mem_block_desc u_block_desc[DESC_CNT];
+  
+  /*5-14添加文件描述符数组*/
+  int32_t fd_table[MAX_FILES_OPEN_PER_PROC];
   
   uint32_t cwd_inode_nr;        //进程所在工作目录的inode
   int16_t parent_pid;

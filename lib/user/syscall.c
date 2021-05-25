@@ -180,3 +180,8 @@ void ps()
 {
   _syscall0(SYS_PS);
 }
+
+int execv(const char *pathname,char **argv)
+{
+  return _syscall2(SYS_EXECV,pathname,argv);
+}

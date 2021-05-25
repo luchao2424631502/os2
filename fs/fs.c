@@ -853,6 +853,7 @@ char *sys_getcwd(char *buf,uint32_t size)
   {
     buf[0] = '/';
     buf[1] = 0;
+    sys_free(io_buf);
     return buf;
   }
 
@@ -920,6 +921,7 @@ int32_t sys_stat(const char *path,struct stat *buf)
     buf->st_filetype = FT_DIRECTORY;
     buf->st_ino = 0;
     buf->st_size = root_dir.inode->i_size;
+    return 0;
   }
 
   int32_t ret = -1;

@@ -29,7 +29,8 @@ enum SYSCALL_NR{
   SYS_READDIR,
   SYS_REWINDDIR,
   SYS_STAT,
-  SYS_PS
+  SYS_PS,
+  SYS_EXECV
 };
 
 /*用户空间api的函数声明*/
@@ -56,4 +57,5 @@ void rewinddir(struct dir *);
 int32_t stat(const char *,struct stat*);
 int32_t chdir(const char *);
 void ps();
+int execv(const char *,char **);
 #endif

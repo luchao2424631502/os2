@@ -32,8 +32,7 @@ void start_process(void *filename_)
   proc_stack->ss = SELECTOR_U_DATA;
 
   /*准备好中断栈环境后,用户进程通过iret进入ring3*/
-  asm volatile ("movl %0,%%esp;"
-      "jmp intr_exit;"::"g"(proc_stack):"memory");
+  asm volatile ("movl %0,%%esp; jmp intr_exit"::"g"(proc_stack):"memory");
 }
 
 /*cr3切换为thread对应的页目录表,*/

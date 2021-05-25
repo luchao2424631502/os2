@@ -150,7 +150,7 @@ mfree_page(粒度:页)流程:
    3. 5-23 添加fs.h中未添加的系统调用,增加ps系统调用
    4. 5-23 实现路径解析转换,在shell.c中测试(将参数(路径)->转化)
    5. 5-23 实现 ls,cd,mkdir,rmdir,rm,pwd,ps,clear命令
-6. 
+6. 5-25 实现exec (修改了lib/string.c的assert)
 
 
 

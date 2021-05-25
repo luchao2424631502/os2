@@ -25,7 +25,7 @@
 
 /*读是status,写是command*/
 #define reg_status(channel)     (channel->port_base + 7)
-#define reg_cmd(channel)        reg_status(channel)
+#define reg_cmd(channel)        (reg_status(channel))
 
 /*control block regists*/
 #define reg_alt_status(channel) (channel->port_base + 0x206)

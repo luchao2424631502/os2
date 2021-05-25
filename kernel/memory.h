@@ -74,7 +74,7 @@ void *sys_malloc(uint32_t);
  * static:page_table_add()对应page_table_pte_remove()
  * static:vaddr_get()对应vaddr_remove()
  * */
-void mfree_page(enum pool_flags,void *addr,uint32_t);
+void mfree_page(enum pool_flags,void *,uint32_t);
 void pfree(uint32_t);
 void sys_free(void*);
 

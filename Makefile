@@ -17,7 +17,8 @@ OBJS       =$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o $(B
 						$(BUILD_DIR)/syscall-init.o $(BUILD_DIR)/stdio.o $(BUILD_DIR)/stdio-kernel.o\
 						$(BUILD_DIR)/ide.o $(BUILD_DIR)/fs.o $(BUILD_DIR)/inode.o\
 						$(BUILD_DIR)/file.o $(BUILD_DIR)/dir.o $(BUILD_DIR)/fork.o\
-						$(BUILD_DIR)/shell.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/buildin_cmd.o
+						$(BUILD_DIR)/shell.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/buildin_cmd.o\
+						$(BUILD_DIR)/exec.o
 BOOTLOADER = $(BUILD_DIR)/mbr.bin $(BUILD_DIR)/loader.bin
 # ---- boot + loader ----
 $(BUILD_DIR)/mbr.bin: boot/mbr.s
@@ -111,6 +112,9 @@ $(BUILD_DIR)/assert.o:lib/user/assert.c
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/buildin_cmd.o:lib/shell/buildin_cmd.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/exec.o:userprog/exec.c
 	$(CC) $(CFLAGS) $< -o $@
 
 #---- ASM汇编文件编译 ----

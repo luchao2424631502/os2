@@ -126,8 +126,7 @@ static void *palloc(struct pool *m_pool)
 /*在页表中添加vaddr和phyaddr的映射*/
 static void page_table_add(void *_vaddr,void *_page_phyaddr)
 {
-  uint32_t vaddr = (uint32_t)_vaddr;
-  uint32_t page_phyaddr = (uint32_t)_page_phyaddr;
+  uint32_t vaddr = (uint32_t)_vaddr,page_phyaddr = (uint32_t)_page_phyaddr;
   uint32_t *pde = pde_ptr(vaddr);
   uint32_t *pte = pte_ptr(vaddr);
 
@@ -143,7 +142,7 @@ static void page_table_add(void *_vaddr,void *_page_phyaddr)
     }
     else 
     {
-      PANIC("[PANIC] kernel/memory.c page_table_add()");
+      PANIC("pte repeat");
     }
   }
   else
@@ -176,8 +175,7 @@ void *malloc_page(enum pool_flags pf,uint32_t pg_cnt)
     return NULL;
   }
   
-  uint32_t vaddr = (uint32_t)vaddr_start;
-  uint32_t cnt = pg_cnt;
+  uint32_t vaddr = (uint32_t)vaddr_start,cnt = pg_cnt;
   struct pool *mem_pool = pf & PF_KERNEL ? &kernel_pool : &user_pool;
   //虚拟地址是连续的可物理地址不是连续的
   while(cnt-- > 0)
@@ -233,7 +231,7 @@ void *get_a_page(enum pool_flags pf,uint32_t vaddr)
   {
     //要指定的虚拟内存地址 - 用户进程起始的虚拟内存地址
     bit_idx = (vaddr - cur->userprog_vaddr.vaddr_start) / PG_SIZE;
-    ASSERT(bit_idx > 0);
+    ASSERT(bit_idx >= 0);
     bitmap_set(&cur->userprog_vaddr.vaddr_bitmap,bit_idx,1);
   }
   /*内核线程*/
@@ -497,12 +495,12 @@ void mfree_page(enum pool_flags pf,void *_vaddr,uint32_t pg_cnt)
   uint32_t pg_phy_addr;
   uint32_t vaddr = (int32_t)_vaddr;
   uint32_t page_cnt = 0;
-  ASSERT((pg_cnt>=1) && (vaddr%PG_SIZE==0));
+  ASSERT(pg_cnt>=1 && vaddr%PG_SIZE==0);
   /*通过addr_v2p()将虚拟地址转化为物理地址*/
   pg_phy_addr = addr_v2p(vaddr);
 
   /*释放的页的物理地址肯定在page directory和page table上*/
-  ASSERT((pg_phy_addr%PG_SIZE==0) && (pg_phy_addr>=0x00102000));
+  ASSERT((pg_phy_addr%PG_SIZE)==0 && pg_phy_addr>=0x102000);
 
   /*判断pg_phy_addr属于用户物理内存池还是内核物理内存池
    * 实际内存是一半先给kernel,剩下的一半给user
@@ -517,7 +515,7 @@ void mfree_page(enum pool_flags pf,void *_vaddr,uint32_t pg_cnt)
       pg_phy_addr = addr_v2p(vaddr);
       
       //确保物理页地址在用户物理内存区域
-      ASSERT((pg_phy_addr%PG_SIZE==0) && (pg_phy_addr>=user_pool.phy_addr_start));
+      ASSERT((pg_phy_addr%PG_SIZE)==0 && pg_phy_addr>=user_pool.phy_addr_start);
       
       /*回收物理页*/
       pfree(pg_phy_addr);
@@ -540,9 +538,9 @@ void mfree_page(enum pool_flags pf,void *_vaddr,uint32_t pg_cnt)
       pg_phy_addr = addr_v2p(vaddr);
 
       /*确保页地址内核的物理内存区域*/
-      ASSERT((pg_phy_addr%PG_SIZE==0) && \
-          (pg_phy_addr >= kernel_pool.phy_addr_start) && \
-          (pg_phy_addr <  user_pool.phy_addr_start));
+      ASSERT((pg_phy_addr%PG_SIZE)==0 && \
+          pg_phy_addr >= kernel_pool.phy_addr_start && \
+          pg_phy_addr <  user_pool.phy_addr_start);
 
       //同上
       pfree(pg_phy_addr);

@@ -10,17 +10,18 @@
 #include "sync.h"
 #include "main.h"
 #include "stdio.h"
-#include "fs.h"
 #include "file.h"
+#include "fs.h"
 
-extern void switch_to(struct task_struct *,struct task_struct *);
 
 struct task_struct *main_thread; //主线程的PCB
 struct task_struct *idle_thread; //idle线程
 struct list thread_ready_list;   //线程就绪队列
 struct list thread_all_list;     //所有线程队列
-static struct list_elem *thread_tag;//保存队列中的线程节点
 struct lock pid_lock;            //pid锁
+static struct list_elem *thread_tag;//保存队列中的线程节点
+
+extern void switch_to(struct task_struct *,struct task_struct *);
 
 /*空闲线程*/
 static void idle(void *arg UNUSED)
@@ -102,9 +103,9 @@ void init_thread(struct task_struct *thread,char *name,int prio)
     thread->status = TASK_READY;
   }
 
-  thread->priority = prio;
   //栈顶在PCB的最后一个字节
   thread->self_kstack = (uint32_t*)((uint32_t)thread + PG_SIZE);
+  thread->priority = prio;
   thread->ticks = prio;
   thread->elapsed_ticks = 0;
   thread->pgdir = NULL;
@@ -331,7 +332,7 @@ static bool elem2thread_info(struct list_elem *elem,int arg UNUSED)
 
 void sys_ps()
 {
-  char* ps_title = "PID            PPID           STAT           TICKS          COMMAND\n";
+  char* ps_title = "PID            PPID           STAT           ALLTICKS          NAME\n";
   sys_write(stdout_no,ps_title,strlen(ps_title));
   //遍历所有进程的链表
   list_traversal(&thread_all_list,elem2thread_info,0);

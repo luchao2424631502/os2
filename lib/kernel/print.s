@@ -29,28 +29,6 @@ init_reg:
   popad
   ret
 
-global set_cursor
-;接收光标位置参数
-set_cursor:
-  pushad 
-  mov bx,[esp+36]
-
-  mov dx,0x3d4
-  mov al,0x0e
-  out dx,al
-  mov dx,0x3d5
-  mov al,bh
-  out dx,al
-
-  mov dx,0x3d4
-  mov al,0x0f
-  out dx,al
-  mov dx,0x3d5
-  mov al,bl
-  out dx,al
-
-  popad
-  ret
 
 put_str:
   push ebx
@@ -269,3 +247,25 @@ put_int:
   popad 
   ret
 
+global set_cursor
+;接收光标位置参数
+set_cursor:
+  pushad 
+  mov bx,[esp+36]
+
+  mov dx,0x3d4
+  mov al,0x0e
+  out dx,al
+  mov dx,0x3d5
+  mov al,bh
+  out dx,al
+
+  mov dx,0x3d4
+  mov al,0x0f
+  out dx,al
+  mov dx,0x3d5
+  mov al,bl
+  out dx,al
+
+  popad
+  ret
