@@ -151,6 +151,8 @@ mfree_page(粒度:页)流程:
    4. 5-23 实现路径解析转换,在shell.c中测试(将参数(路径)->转化)
    5. 5-23 实现 ls,cd,mkdir,rmdir,rm,pwd,ps,clear命令
 6. 5-25 实现exec (修改了lib/string.c的assert)
+7. 6-2  用户进程(自己编译失败,待在centos 6.3上编译(可能当前gcc版本过高)),但是`https://github.com/zhangwenxiao/os-core/tree/master/command`将他编译好的prog_arg和prog_no_arg写入,并且加载执行成功.
+8. 
 
 
 

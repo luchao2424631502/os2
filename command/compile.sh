@@ -12,17 +12,17 @@ if [[ ! -d "../lib" || ! -d "../tmp" ]];then
   exit
 fi
 
-BIN="prog_no_arg"
-#gcc -Wall -c -m32 -fno-builtin -fno-stack-protector -W -Wno-implicit-fallthrough
-CFLAGS="-m32 -Wall -c -fno-builtin -fno-stack-protector -W -Wstrict-prototypes -Wmissing-prototypes -Wsystem-headers"
-LIB="../lib/"
-OBJS="../tmp/string.o ../tmp/syscall.o ../tmp/stdio.o ../tmp/assert.o"
+BIN="prog_arg"
+CFLAGS="-m32 -fno-stack-protector -Wall -c -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes -Wsystem-headers"
+LIBS="-I ../lib -I ../lib/user -I ../fs "
+OBJS="../tmp/string.o ../tmp/syscall.o ../tmp/stdio.o ../tmp/assert.o start.o"
 DD_IN=$BIN
 DD_OUT="/home/luchao/Work/os2/hd60M.img"
 
-#ld -Ttext 0xc0001500 -e main -m elf_i386 
-gcc $CFLAGS -I $LIB -o $BIN".o" $BIN".c"
-ld -m elf_i386 -e main $BIN".o" $OBJS -o $BIN
+nasm -f elf ./start.s -o ./start.o
+ar rcs simple_crt.a $OBJS start.o
+gcc $CFLAGS $LIBS -o $BIN".o" $BIN".c"
+ld -m elf_i386 $BIN".o" simple_crt.a -o $BIN
 SEC_CNT=$(ls -l $BIN|awk '{printf("%d",($5+511)/512)}')
 
 if [[ -f $BIN ]];then
