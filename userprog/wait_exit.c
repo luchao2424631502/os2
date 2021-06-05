@@ -5,6 +5,8 @@
 #include "list.h"
 #include "memory.h"
 #include "fs.h"
+#include "file.h"
+#include "pipe.h"
 
 /* 释放用户进程资源:
  * 1. 进程自己页表中对应的物理页(进程占用的物理内存)
@@ -63,15 +65,27 @@ static void release_prog_resource(struct task_struct *release_thread)
   uint8_t *user_vaddr_pool_bitmap = release_thread->userprog_vaddr.vaddr_bitmap.bits;
   mfree_page(PF_KERNEL,user_vaddr_pool_bitmap,bitmap_pg_cnt);
 
-  uint8_t fd_idx = 3;
+  uint8_t local_fd = 3;
   //MAX_FILES_OPEN_PER_PROC = 8(每个进程最多打开8个文件描述符)
-  while (fd_idx < MAX_FILES_OPEN_PER_PROC)
+  while (local_fd < MAX_FILES_OPEN_PER_PROC)
   {
-    if (release_thread->fd_table[fd_idx] != -1)
+    if (release_thread->fd_table[local_fd] != -1)
     {
-      sys_close(fd_idx);
+      if (is_pipe(local_fd))
+      {
+        uint32_t global_fd = fd_local2global(local_fd);
+        if (--file_table[global_fd].fd_pos == 0)
+        {
+          mfree_page(PF_KERNEL,file_table[global_fd].fd_inode,1);
+          file_table[global_fd].fd_inode = NULL;
+        }
+      }
+      else 
+      {
+        sys_close(local_fd);
+      }
     }
-    fd_idx++;
+    local_fd++;
   }
 }
 

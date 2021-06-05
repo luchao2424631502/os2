@@ -15,6 +15,7 @@
 #include "ioqueue.h"
 #include "keyboard.h"
 #include "console.h"
+#include "pipe.h"
 
 //默认情况下操作的是哪一个分区
 struct partition *cur_part;
@@ -361,7 +362,7 @@ int32_t sys_open(const char *pathname,uint8_t flags)
 }
 
 /*将文件描述符转化为fd_table下标*/
-static uint32_t fd_local2global(uint32_t local_fd)
+uint32_t fd_local2global(uint32_t local_fd)
 {
   struct task_struct *cur = running_thread();
   int32_t global_fd = cur->fd_table[local_fd];
@@ -375,8 +376,22 @@ int32_t sys_close(int32_t fd)
   int32_t ret = -1;
   if (fd > 2)//除去stdin(0) stdout(1) stderr(2)
   {
-    uint32_t local_fd = fd_local2global(fd);
-    ret = file_close(&file_table[local_fd]);
+    uint32_t global_fd = fd_local2global(fd);
+    if (is_pipe(fd))
+    {
+      //管道上的2个文件描述符都被关闭了就释放ring buffer
+      if (--file_table[global_fd].fd_pos == 0)
+      {
+        //释放内核空间中的内存
+        mfree_page(PF_KERNEL,file_table[global_fd].fd_inode,1);
+        file_table[global_fd].fd_inode = NULL;
+      }
+      ret = 0;
+    }
+    else 
+    {
+      ret = file_close(&file_table[global_fd]);
+    }
     running_thread()->fd_table[fd] = -1;//指向的fd_table的下标为0,
   }
   return ret;
@@ -392,28 +407,42 @@ int32_t sys_write(int32_t fd,const void *buf,uint32_t count)
     return -1;
   }
 
-  //向屏幕输出,
+  //标准输出
   if (fd == stdout_no)
   {
-    char tmp_buf[1024] = {0};
-    memcpy(tmp_buf,buf,count);
-    console_put_str(tmp_buf);
-    return count;
+    //标准输出被重定向到管道
+    if (is_pipe(fd))
+    {
+      return pipe_write(fd,buf,count);
+    }
+    else 
+    {
+      char tmp_buf[1024] = {0};
+      memcpy(tmp_buf,buf,count);
+      console_put_str(tmp_buf);
+      return count;
+    }
   }
-
-  //向文件写入
-  uint32_t global_fd = fd_local2global(fd);//将进程中fd转化为file_table[]下标 
-  struct file *wr_file = &file_table[global_fd];
-  //根据进程打开文件时的性质判断是否是写
-  if (wr_file->fd_flag & O_WRONLY || wr_file->fd_flag & O_RDWR)
+  else if (is_pipe(fd))
   {
-    uint32_t bytes_written = file_write(wr_file,buf,count);
-    return bytes_written;
+    return pipe_write(fd,buf,count);
   }
   else 
   {
-    console_put_str("fs/fs.c sys_write(): not allowed to write file without flag O_RDWR or O_WRONLY\n");
-    return -1;
+    //向文件写入
+    uint32_t global_fd = fd_local2global(fd);//将进程中fd转化为file_table[]下标 
+    struct file *wr_file = &file_table[global_fd];
+    //根据进程打开文件时的性质判断是否是写
+    if (wr_file->fd_flag & O_WRONLY || wr_file->fd_flag & O_RDWR)
+    {
+      uint32_t bytes_written = file_write(wr_file,buf,count);
+      return bytes_written;
+    }
+    else 
+    {
+      console_put_str("fs/fs.c sys_write(): not allowed to write file without flag O_RDWR or O_WRONLY\n");
+      return -1;
+    }
   }
 }
 
@@ -422,26 +451,40 @@ int32_t sys_read(int32_t fd,void *buf,uint32_t count)
 {
   ASSERT(buf != NULL);
   int32_t ret = -1;
+  uint32_t global_fd = 0;
   if (fd < 0 || fd == stdout_no || fd == stderr_no)
   {
     printk("fs/fs.c sys_read(): fd error\n");
   }
+  //标准输入
   else if (fd == stdin_no)
   {
-    char *buffer = buf;
-    uint32_t bytes_read = 0;
-    while (bytes_read < count)
+    //标准输入被重定向为管道缓冲区
+    if (is_pipe(fd))
     {
-      /*在keyboard.c中向ioqueue中加入添加的字符(生产),这里来消费*/
-      *buffer = ioq_getchar(&kbd_buf); 
-      bytes_read++;
-      buffer++;
+      ret = pipe_read(fd,buf,count);
     }
-    ret = (bytes_read == 0 ? -1 : (int32_t)bytes_read);
+    else 
+    {
+      char *buffer = buf;
+      uint32_t bytes_read = 0;
+      while (bytes_read < count)
+      {
+        /*在keyboard.c中向ioqueue中加入添加的字符(生产),这里来消费*/
+        *buffer = ioq_getchar(&kbd_buf); 
+        bytes_read++;
+        buffer++;
+      }
+      ret = (bytes_read == 0 ? -1 : (int32_t)bytes_read);
+    }
+  }
+  else if (is_pipe(fd))
+  {
+    ret = pipe_read(fd,buf,count);
   }
   else//普通情况 
   {
-    uint32_t global_fd = fd_local2global(fd);
+    global_fd = fd_local2global(fd);
     ret = file_read(&file_table[global_fd],buf,count);
   }
   return ret;

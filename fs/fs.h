@@ -72,4 +72,5 @@ char *sys_getcwd(char *,uint32_t);
 int32_t sys_chdir(const char *);
 int32_t sys_stat(const char *,struct stat *);
 void sys_putchar(char);
+uint32_t fd_local2global(uint32_t);
 #endif

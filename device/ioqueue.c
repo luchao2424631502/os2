@@ -107,3 +107,17 @@ void ioq_putchar(struct ioqueue *ioq,char ch)
   }
 }
 
+uint32_t ioq_length(struct ioqueue *ioq)
+{
+  uint32_t len = 0;
+  //head是生产者处理的,tail是消费者处理的
+  if (ioq->head >= ioq->tail)
+  {
+    len = ioq->head - ioq->tail;
+  }
+  else
+  {
+    len = BUF_SIZE - (ioq->tail - ioq->head);
+  }
+  return len;
+}
