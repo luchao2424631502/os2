@@ -154,7 +154,7 @@ mfree_page(粒度:页)流程:
 >
 > 于是开了个i686的虚拟机来编译,gcc版本是4.5左右,编译链接出来的程序放到bochs中加载成功, 
 >
-> i686下编译的Makefile以及一些*.sh上传到tools目录中
+> i686下编译的Makefile以及一些*.sh上传到`command/tools`目录中
 
 10. 6-5实现管道sys_pipe(),添加系统调用pipe(),用管道来进行父子进程间通信测试
 
