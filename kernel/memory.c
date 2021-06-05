@@ -712,6 +712,24 @@ void block_desc_init(struct mem_block_desc *desc_array)
   }
 }
 
+/*给出页的物理地址pg_phy_addr,然后清除所在位池对应的bitmap*/
+void free_a_phy_page(uint32_t pg_phy_addr)
+{
+  struct pool *mem_pool;
+  uint32_t bit_idx = 0;
+  if (pg_phy_addr >= user_pool.phy_addr_start)
+  {
+    mem_pool = &user_pool;
+    bit_idx = (pg_phy_addr - user_pool.phy_addr_start) / PG_SIZE;
+  }
+  else 
+  {
+    mem_pool = &kernel_pool;
+    bit_idx = (pg_phy_addr - kernel_pool.phy_addr_start) / PG_SIZE;
+  }
+  bitmap_set(&mem_pool->pool_bitmap,bit_idx,0);
+}
+
 void mem_init()
 {
   put_str("[mem_init] start\n");

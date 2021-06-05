@@ -13,25 +13,16 @@
 
 ## 分支情况
 
- 									head
-
-​										|
-
-​									master
-
-​										|
-
-​								[实现系统调用]
-
-[实现用户进程]->
-
-​								[vga]-->[desktop]-->[mouse]
-
-​																		|
-
-​																	graphics
 
 
+|                   |            head            |              |
+| :---------------: | :------------------------: | :----------: |
+|                   |             \|             |              |
+|                   |           master           |              |
+|                   |             \|             |              |
+|                   |    [实现系统调用]-> ...    |  master分支  |
+| [实现用户进程]--> |                            |              |
+|                   | [vga]-->[desktop]->[mouse] | graphics分支 |
 
 ## 编译运行
 
@@ -141,18 +132,36 @@ mfree_page(粒度:页)流程:
 ## IPC 2021-5-21
 
 1. 5-22 sys_fork()的实现,添加fork()系统调用
+
 2. 实现init进程,由loader->init进程
+
 3. 5-22是sys_read()添加处理键盘输入(stdin_no)
+
 4. 5-22添加putchar(),cls_screen()系统调用
+
 5. 5-22实现 简单shell (5-23完成)
    1. 5-22(keyboard.c中有特殊处理),在shell.c添加ctrl+u/ctrl+l快捷键
    2. 5-23 解析键入的字符
    3. 5-23 添加fs.h中未添加的系统调用,增加ps系统调用
    4. 5-23 实现路径解析转换,在shell.c中测试(将参数(路径)->转化)
    5. 5-23 实现 ls,cd,mkdir,rmdir,rm,pwd,ps,clear命令
+   
 6. 5-25 实现exec (修改了lib/string.c的assert)
+
 7. 6-2  用户进程(自己编译失败,待在centos 6.3上编译(可能当前gcc版本过高)),但是`https://github.com/zhangwenxiao/os-core/tree/master/command`将他编译好的prog_arg和prog_no_arg写入,并且加载执行成功.
-8. 
+
+8. 6-3  实现wait(),exit()系统调用
+
+9. 6-5  完善wait(),exit(),并且实现了cat命令.(结束了main内核线程,并且while()都修改为exit(),避免消耗cpu)
+
+## Chapter 15编译用户进程的问题
+
+> 沿用当前在X64的-m 32等选项,编译链接出来的用户进程在bochs中加载失败,可能是gcc版本太高了 gcc 9.6
+>
+> 于是开了个i686的虚拟机来编译,gcc版本是4.5左右,编译链接出来的程序放到bochs中加载成功, 
+>
+> i686下编译的Makefile以及一些*.sh上传到tools目录中
+
 
 
 

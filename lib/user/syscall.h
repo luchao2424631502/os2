@@ -3,6 +3,7 @@
 
 #include "stdint.h"
 #include "fs.h"
+#include "thread.h"
 
 /*根据内核将系统调用的实现顺序
  *来在用户空间定义api的index顺序*/
@@ -30,7 +31,10 @@ enum SYSCALL_NR{
   SYS_REWINDDIR,
   SYS_STAT,
   SYS_PS,
-  SYS_EXECV
+  SYS_EXECV,
+  /*6-4添加*/
+  SYS_EXIT,
+  SYS_WAIT
 };
 
 /*用户空间api的函数声明*/
@@ -57,5 +61,7 @@ void rewinddir(struct dir *);
 int32_t stat(const char *,struct stat*);
 int32_t chdir(const char *);
 void ps();
-int execv(const char *,char **);
+int32_t execv(const char *,char **);
+void exit(int32_t);
+pid_t wait(int32_t *);
 #endif

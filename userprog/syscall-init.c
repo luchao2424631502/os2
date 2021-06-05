@@ -9,6 +9,7 @@
 #include "fs.h"
 #include "fork.h"
 #include "exec.h"
+#include "wait_exit.h"
 
 /*内核提供调用的函数个数*/
 #define SYSCALL_NR 32
@@ -54,6 +55,8 @@ void syscall_init()
   syscall_table[SYS_STAT]   = sys_stat;
   syscall_table[SYS_PS]     = sys_ps;
   syscall_table[SYS_EXECV]  = sys_execv;
+  syscall_table[SYS_EXIT]   = sys_exit;
+  syscall_table[SYS_WAIT]   = sys_wait;
   put_str("[syscall_init] done\n");
 }
 

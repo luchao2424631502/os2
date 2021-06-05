@@ -100,7 +100,8 @@ struct task_struct
   int32_t fd_table[MAX_FILES_OPEN_PER_PROC];
   
   uint32_t cwd_inode_nr;        //进程所在工作目录的inode
-  int16_t parent_pid;
+  pid_t parent_pid;
+  int8_t exit_status;   //进程退出后的状态
   //魔数用来检测pcb栈边界
   uint32_t stack_magic;
 };
@@ -123,4 +124,7 @@ void thread_unblock(struct task_struct *);
 void thread_yield();
 pid_t fork_pid();
 void sys_ps();
+void thread_exit(struct task_struct *,bool );
+struct task_struct *pid2thread(int32_t);
+void release_pid(pid_t);
 #endif

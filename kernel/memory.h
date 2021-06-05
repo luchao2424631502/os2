@@ -79,5 +79,6 @@ void pfree(uint32_t);
 void sys_free(void*);
 
 void *get_a_page_without_opvaddrbitmap(enum pool_flags,uint32_t);
+void free_a_phy_page(uint32_t);
 
 #endif

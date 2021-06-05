@@ -113,7 +113,7 @@ static int32_t cmd_parse(char *cmd_str,char **argv,char token)
   return argc;
 }
 
-char *argv[MAX_ARG_NR];
+char *argv[MAX_ARG_NR] = {NULL};
 int32_t argc = -1;
 
 void my_shell()
@@ -178,7 +178,15 @@ void my_shell()
       int32_t pid = fork();
       if (pid)//父进程
       {
-        while (1);
+        int32_t status;
+        int32_t child_pid = wait(&status);
+
+        if (child_pid == -1)
+        {
+          panic("lib/user/shell.c my_shell: no child\n");
+        }
+
+        printf("child_pid: %d, it's status: %d\n",child_pid,status);
       }
       else//子进程 
       {
@@ -190,12 +198,12 @@ void my_shell()
         if (stat(argv[0],&file_stat) == -1)
         {
           printf("lib/shell/shell.c my_shell(): cannot access %s: No such file or directory\n",argv[0]);
+          exit(-1);
         }
         else 
         {
           execv(argv[0],argv);
         }
-        while (1);
       }
     }
 

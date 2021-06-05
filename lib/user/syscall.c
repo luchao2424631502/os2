@@ -4,7 +4,6 @@
  * 通过int 0x80所以封装int 0x80并且帮助传递参数
  * */
 #include "syscall.h"
-#include "thread.h"
 
 /*无参数的系统调用*/
 #define _syscall0(NUMBER) ({    \
@@ -181,7 +180,17 @@ void ps()
   _syscall0(SYS_PS);
 }
 
-int execv(const char *pathname,char **argv)
+int32_t execv(const char *pathname,char **argv)
 {
   return _syscall2(SYS_EXECV,pathname,argv);
+}
+
+void exit(int32_t status)
+{
+  _syscall1(SYS_EXIT,status);
+}
+
+pid_t wait(int32_t *status)
+{
+  return _syscall1(SYS_WAIT,status);
 }
