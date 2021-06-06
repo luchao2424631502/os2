@@ -995,6 +995,24 @@ void sys_putchar(char char_asci)
   console_put_char(char_asci);
 }
 
+//显示支持的内部指令
+void sys_help()
+{
+  printk("\
+      buildin commands:\n\
+      ls: show directory or file information\n\
+      cd: change current work directory\n\
+      mkdir: create a directory\n\
+      rmdir: remove a empty directory\n\
+      rm: remove a regular file\n\
+      pwd: show current work directory\n\
+      ps: show process information\n\
+      clear: clear screen\n\
+      shortcut key:\n\
+      ctrl+l: clear screen\n\
+      ctrl+u: clear input\n\n");
+}
+
 /*文件系统初始化*/
 void filesys_init()
 {

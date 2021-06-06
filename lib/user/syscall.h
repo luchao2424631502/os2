@@ -35,7 +35,9 @@ enum SYSCALL_NR{
   /*6-4添加*/
   SYS_EXIT,
   SYS_WAIT,
-  SYS_PIPE
+  SYS_PIPE,
+  SYS_FD_REDIRECT,
+  SYS_HELP
 };
 
 /*用户空间api的函数声明*/
@@ -66,4 +68,6 @@ int32_t execv(const char *,char **);
 void exit(int32_t);
 pid_t wait(int32_t *);
 int32_t pipe(int32_t pipefd[2]);
+void fd_redirect(uint32_t,uint32_t);
+void help();
 #endif

@@ -158,6 +158,14 @@ mfree_page(粒度:页)流程:
 
 10. 6-5实现管道sys_pipe(),添加系统调用pipe(),用管道来进行父子进程间通信测试
 
+11. 6-6 fs.c添加sys_help(),pipe.c添加sys_fd_redirect(),
+
+    然后添加help()和fd_redirect()系统调用,
+
+    修改shell.c/my_shell()的处理逻辑,增加对shell的管道支持
+
+    修改cat.c(无参数则echo),测试多管道成功
+
 
 
 

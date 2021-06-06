@@ -3,6 +3,7 @@
 #include "file.h"
 #include "memory.h"
 #include "ioqueue.h"
+#include "thread.h"
 
 /*判断文件描述符对应的文件是不是管道*/
 bool is_pipe(uint32_t local_fd)
@@ -78,4 +79,19 @@ uint32_t pipe_write(int32_t fd,const void *buf,uint32_t count)
   }
 
   return bytes_write;
+}
+
+/*将old_local_fd描述符重定向为new_local_fd*/
+void sys_fd_redirect(uint32_t old_local_fd,uint32_t new_local_fd)
+{
+  struct task_struct *cur = running_thread();
+  if (new_local_fd < 3)
+  {
+    cur->fd_table[old_local_fd] = new_local_fd;
+  }
+  else 
+  {
+    uint32_t new_global_fd = cur->fd_table[new_local_fd];
+    cur->fd_table[old_local_fd] = new_global_fd;
+  }
 }

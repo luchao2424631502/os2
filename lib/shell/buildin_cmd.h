@@ -13,6 +13,6 @@ void make_clear_abs_path(char *,char *);
 void buildin_pwd(uint32_t argc,char **argv);
 void buildin_ps(uint32_t argc,char **argv);
 void buildin_clear(uint32_t argc,char **argv);
-
+void buildin_help(uint32_t argc,char **argv);
 #endif
 

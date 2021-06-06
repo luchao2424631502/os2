@@ -10,4 +10,5 @@ bool is_pipe(uint32_t);
 int32_t sys_pipe(int32_t pipefd[2]);
 uint32_t pipe_read(int32_t,void *,uint32_t);
 uint32_t pipe_write(int32_t,const void *,uint32_t);
+void sys_fd_redirect(uint32_t,uint32_t);
 #endif
