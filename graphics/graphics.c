@@ -8,10 +8,21 @@
 #include "paint.h"
 #include "mouse.h"
 
+#include "print.h"
+
+extern uint8_t _binary_graphics_1_in_start[];
+extern uint8_t _binary_graphics_1_in_end[];
+extern uint8_t _binary_graphics_1_in_size[];
+
 static void init_palette();
 static void set_palette(int,int,unsigned char *);
 static void desktop_init();
 static void screen_init();
+
+/*打算在内核中测试(实现)图形操作*/
+void kernel_graphics()
+{
+}
 
 void graphics_init()
 {

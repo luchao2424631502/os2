@@ -1,0 +1,63 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+BIT_DEV_DEV	ide.c	42;"	d	file:
+BIT_DEV_LBA	ide.c	41;"	d	file:
+BIT_DEV_MBS	ide.c	40;"	d	file:
+BIT_STAT_BSY	ide.c	35;"	d	file:
+BIT_STAT_DRDY	ide.c	36;"	d	file:
+BIT_STAT_DRQ	ide.c	37;"	d	file:
+CMD_IDENTIFY	ide.c	45;"	d	file:
+CMD_READ_SECTOR	ide.c	46;"	d	file:
+CMD_WRITE_SECTOR	ide.c	47;"	d	file:
+MAX_LBA	ide.c	49;"	d	file:
+boot_sector	ide.c	/^struct boot_sector$/;"	s	file:
+bootable	ide.c	/^  uint8_t bootable;$/;"	m	struct:partition_table_entry	file:
+busy_wait	ide.c	/^static bool busy_wait(struct disk *hd)$/;"	f	file:
+channel_cnt	ide.c	/^uint8_t channel_cnt;            \/\/ata通道个数$/;"	v
+channels	ide.c	/^struct ide_channel channels[2]; \/\/一个ata通道2个硬盘 $/;"	v	typeref:struct:ide_channel
+cmd_out	ide.c	/^static void cmd_out(struct ide_channel *channel,uint8_t cmd)$/;"	f	file:
+end_chs	ide.c	/^  uint8_t end_chs;      \/\/结束柱面号$/;"	m	struct:partition_table_entry	file:
+end_head	ide.c	/^  uint8_t end_head;     \/\/结束磁头号$/;"	m	struct:partition_table_entry	file:
+end_sec	ide.c	/^  uint8_t end_sec;      \/\/结束扇区号$/;"	m	struct:partition_table_entry	file:
+ext_lba_base	ide.c	/^int32_t ext_lba_base = 0;       \/\/总扩展分区的起始lba$/;"	v
+fs_type	ide.c	/^  uint8_t fs_type;      \/\/分区类型id$/;"	m	struct:partition_table_entry	file:
+ide_init	ide.c	/^void ide_init()$/;"	f
+ide_read	ide.c	/^void ide_read(struct disk *hd,uint32_t lba,void *buf,uint32_t sec_cnt)$/;"	f
+ide_write	ide.c	/^void ide_write(struct disk *hd,uint32_t lba,void *buf,uint32_t sec_cnt)$/;"	f
+identify_disk	ide.c	/^static void identify_disk(struct disk *hd)$/;"	f	file:
+intr_hd_handler	ide.c	/^void intr_hd_handler(uint8_t irq_no)$/;"	f
+l_no	ide.c	/^uint8_t p_no = 0,l_no = 0;      \/\/主分区和逻辑分区的下标$/;"	v
+max_lba	ide.c	50;"	d	file:
+other	ide.c	/^  uint8_t other[446];   \/\/mbr引导内容$/;"	m	struct:boot_sector	file:
+p_no	ide.c	/^uint8_t p_no = 0,l_no = 0;      \/\/主分区和逻辑分区的下标$/;"	v
+partition_info	ide.c	/^static bool partition_info(struct list_elem *elem,int arg UNUSED)$/;"	f	file:
+partition_list	ide.c	/^struct list partition_list;     \/\/分区队列$/;"	v	typeref:struct:list
+partition_scan	ide.c	/^static void partition_scan(struct disk *hd,uint32_t ext_lba)$/;"	f	file:
+partition_table	ide.c	/^  struct partition_table_entry partition_table[4];$/;"	m	struct:boot_sector	typeref:struct:boot_sector::partition_table_entry	file:
+partition_table_entry	ide.c	/^struct partition_table_entry$/;"	s	file:
+read_from_sector	ide.c	/^static void read_from_sector(struct disk *hd,void *buf,uint8_t sec_cnt)$/;"	f	file:
+reg_alt_status	ide.c	31;"	d	file:
+reg_cmd	ide.c	28;"	d	file:
+reg_ctl	ide.c	32;"	d	file:
+reg_data	ide.c	18;"	d	file:
+reg_dev	ide.c	24;"	d	file:
+reg_error	ide.c	19;"	d	file:
+reg_lba_h	ide.c	23;"	d	file:
+reg_lba_l	ide.c	21;"	d	file:
+reg_lba_m	ide.c	22;"	d	file:
+reg_sect_cnt	ide.c	20;"	d	file:
+reg_status	ide.c	27;"	d	file:
+sec_cnt	ide.c	/^  uint32_t sec_cnt;     \/\/分区扇区数量$/;"	m	struct:partition_table_entry	file:
+select_disk	ide.c	/^static void select_disk(struct disk *hd)$/;"	f	file:
+select_sector	ide.c	/^static void select_sector(struct disk *hd,uint32_t lba,uint8_t sec_cnt)$/;"	f	file:
+signature	ide.c	/^  uint16_t signature;   \/\/0x55,0xaa$/;"	m	struct:boot_sector	file:
+start_chs	ide.c	/^  uint8_t start_chs;    \/\/起始柱面号$/;"	m	struct:partition_table_entry	file:
+start_head	ide.c	/^  uint8_t start_head;   \/\/起始磁头号$/;"	m	struct:partition_table_entry	file:
+start_lba	ide.c	/^  uint32_t start_lba;   \/\/分区起始lba  $/;"	m	struct:partition_table_entry	file:
+start_sec	ide.c	/^  uint8_t start_sec;    \/\/起始扇区号$/;"	m	struct:partition_table_entry	file:
+swap_pairs_bytes	ide.c	/^static void swap_pairs_bytes(const char *dst,char *buf,uint32_t len)$/;"	f	file:
+write2sector	ide.c	/^static void write2sector(struct disk *hd,void *buf,uint8_t sec_cnt)$/;"	f	file:

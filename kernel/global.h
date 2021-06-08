@@ -109,10 +109,12 @@ struct gdt_desc
 
 #define NULL ((void*)0)
 #define DIV_ROUND_UP(X,STEP) ((X+STEP - 1) / (STEP)) //向上取整
-typedef uint8_t bool;
+#define bool int
 #define true  1
 #define false 0
 
 #define PG_SIZE 4096
+
+#define UNUSED  __attribute__ ((unused))
 
 #endif

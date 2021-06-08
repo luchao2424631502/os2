@@ -5,7 +5,7 @@
 #include "thread.h"
 #include "sync.h"
 
-#define BUF_SIZE 64 
+#define BUF_SIZE 2048 
 
 /*ring buffer*/
 struct ioqueue
@@ -22,8 +22,8 @@ struct ioqueue
 void ioqueue_init(struct ioqueue*);
 bool ioq_full(struct ioqueue*);
 bool ioq_empty(struct ioqueue*);
-
 char ioq_getchar(struct ioqueue *);     //从ringbuffer中得到char
 void ioq_putchar(struct ioqueue *,char);//向ringbuffer中插入char
+uint32_t ioq_length(struct ioqueue *);  //6-5新增ioq_length函数
 
 #endif

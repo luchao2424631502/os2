@@ -7,14 +7,44 @@
 #include "print.h"
 #include "memory.h"
 #include "process.h"
+#include "sync.h"
+#include "main.h"
+#include "stdio.h"
+#include "file.h"
+#include "fs.h"
+#include "graphics.h"
 
+/*全局pid分配的bitmap*/
+uint8_t pid_bitmap_bits[128] = {0};
 
-extern void switch_to(struct task_struct *,struct task_struct *);
+/*pid 池*/
+struct pid_pool 
+{
+  struct bitmap pid_bitmap; //bitmap
+  uint32_t pid_start;       //起始pid
+  struct lock pid_lock;         //分配pid时的锁
+}pid_pool;
 
 struct task_struct *main_thread; //主线程的PCB
+struct task_struct *idle_thread; //idle线程
 struct list thread_ready_list;   //线程就绪队列
 struct list thread_all_list;     //所有线程队列
 static struct list_elem *thread_tag;//保存队列中的线程节点
+
+extern void switch_to(struct task_struct *,struct task_struct *);
+
+/*空闲线程*/
+static void idle(void *arg UNUSED)
+{
+  while (1)
+  {
+    thread_block(TASK_BLOCKED);
+    //开中断使得cpu可以从暂停状态恢复,
+    //(6-8:除去hlt指令,因为idle内核线程执行此指令使得bochs的IPS爆低到1M,和原本的30-40M性能差距过大
+    // asm volatile ("sti; hlt":::"memory");
+    asm volatile ("sti; ":::"memory");
+  }
+}
 
 /*获取当前线程pcb指针*/
 struct task_struct *running_thread()
@@ -25,11 +55,49 @@ struct task_struct *running_thread()
   return (struct task_struct *)(esp & 0xfffff000);
 }
 
-static void kernel_thread(thread_func function,void *func_arg)
+static void kernel_thread(thread_func* function,void *func_arg)
 {
   //避免时钟中断被屏蔽,后面此线程一直独占cpu
   intr_enable();
   function(func_arg);
+}
+
+/*初始化pid池*/
+static void pid_pool_init()
+{
+  pid_pool.pid_start = 1;
+  pid_pool.pid_bitmap.bits = pid_bitmap_bits;//全局pid bitmap
+  pid_pool.pid_bitmap.btmp_bytes_len = 128;
+  
+  bitmap_init(&pid_pool.pid_bitmap);
+  lock_init(&pid_pool.pid_lock);
+}
+
+/*分配pid*/
+static pid_t allocate_pid()
+{
+  lock_acquire(&pid_pool.pid_lock);
+
+  int32_t bit_idx = bitmap_scan(&pid_pool.pid_bitmap,1);
+  bitmap_set(&pid_pool.pid_bitmap,bit_idx,1);
+
+  lock_release(&pid_pool.pid_lock);
+  return (bit_idx + pid_pool.pid_start);//返回分配的Pid
+}
+
+/*释放Pid*/
+void release_pid(pid_t pid)
+{
+  lock_acquire(&pid_pool.pid_lock);
+  int32_t bit_idx = pid - pid_pool.pid_start;
+  bitmap_set(&pid_pool.pid_bitmap,bit_idx,0);
+  lock_release(&pid_pool.pid_lock);
+}
+
+/*分配pid*/
+pid_t fork_pid()
+{
+  return allocate_pid();
 }
 
 /*初始化线程栈,*/
@@ -53,6 +121,8 @@ void thread_create(struct task_struct *thread,thread_func function,void *func_ar
 void init_thread(struct task_struct *thread,char *name,int prio)
 {
   memset(thread,0,sizeof(*thread));
+  //2021-4-29分配task的pid
+  thread->pid = allocate_pid();
   strcpy(thread->name,name);
   //把main函数封装成线程
   if (thread == main_thread)
@@ -64,12 +134,26 @@ void init_thread(struct task_struct *thread,char *name,int prio)
     thread->status = TASK_READY;
   }
 
-  thread->priority = prio;
   //栈顶在PCB的最后一个字节
   thread->self_kstack = (uint32_t*)((uint32_t)thread + PG_SIZE);
+  thread->priority = prio;
   thread->ticks = prio;
   thread->elapsed_ticks = 0;
   thread->pgdir = NULL;
+
+  //预留stdio的描述符
+  thread->fd_table[0] = 0;
+  thread->fd_table[1] = 1;
+  thread->fd_table[2] = 2;
+  uint8_t fd_idx = 3;
+  while(fd_idx < MAX_FILES_OPEN_PER_PROC)
+  {
+    thread->fd_table[fd_idx] = -1;
+    fd_idx++;
+  }
+
+  thread->cwd_inode_nr = 0;//根目录作为默认的工作路径
+  thread->parent_pid = -1;
   thread->stack_magic = 0x20010522;
 }
 
@@ -142,6 +226,12 @@ void schedule()
 
   }
 
+  /*当前就绪队列为空,唤醒idle线程*/
+  if (list_empty(&thread_ready_list))
+  {
+    thread_unblock(idle_thread);
+  }
+
   ASSERT(!list_empty(&thread_ready_list));
   thread_tag = NULL;
   thread_tag = list_pop(&thread_ready_list);
@@ -170,9 +260,7 @@ void thread_block(enum task_status status)
 void thread_unblock(struct task_struct *thread)
 {
   enum intr_status old_status = intr_disable();
-  ASSERT((thread->status == TASK_HANGING)||
-      (thread->status == TASK_BLOCKED)||
-      (thread->status == TASK_WAITING));
+  ASSERT((thread->status == TASK_BLOCKED)||(thread->status == TASK_WAITING)||(thread->status == TASK_HANGING));
   //只要thread的状态不是ready,说明当前不再就绪队列,仍然是被阻塞
   if (thread->status != TASK_READY)
   {
@@ -189,13 +277,180 @@ void thread_unblock(struct task_struct *thread)
   intr_set_status(old_status);
 }
 
+/*当前线程让出cpu时间片,立刻加入到就绪队列,(注意不是阻塞)*/
+void thread_yield()
+{
+  struct task_struct *cur = running_thread();
+  enum intr_status old_status = intr_disable();
+  ASSERT(!elem_find(&thread_ready_list,&cur->general_tag));
+  list_append(&thread_ready_list,&cur->general_tag);
+  cur->status = TASK_READY;
+  schedule();
+  intr_set_status(old_status);
+}
+
+//
+static void pad_print(char *buf,int32_t buf_len,void *ptr,char format)
+{
+  memset(buf,0,buf_len);
+  uint8_t out_pad_0idx = 0;
+  switch (format)
+  {
+    case 's':
+      out_pad_0idx = sprintf(buf,"%s",ptr);
+      break;
+    case 'd':
+      out_pad_0idx = sprintf(buf,"%d",*((uint16_t *)ptr));
+    case 'x':
+      out_pad_0idx = sprintf(buf,"%x",*((uint32_t *)ptr));
+  }
+  while (out_pad_0idx < buf_len)
+  {
+    buf[out_pad_0idx] = ' ';
+    out_pad_0idx++;
+  }
+  sys_write(stdout_no,buf,buf_len - 1);
+}
+
+/*list_traversal的回调函数,打印每个任务的信息*/
+static bool elem2thread_info(struct list_elem *elem,int arg UNUSED)
+{
+  struct task_struct *thread = elem2entry(struct task_struct,all_list_tag,elem);
+  char out_pad[16] = {0};
+
+  //输出pid
+  pad_print(out_pad,16,&thread->pid,'d');
+
+  if (thread->parent_pid == -1)
+  {
+    pad_print(out_pad,16,"NULL",'s');
+  }
+  else 
+  {
+    pad_print(out_pad,16,&thread->parent_pid,'d');
+  }
+
+  switch(thread->status)
+  {
+    case 0:
+      pad_print(out_pad,16,"RUNNING",'s');
+      break;
+    case 1:
+      pad_print(out_pad,16,"READY",'s');
+      break;
+    case 2:
+      pad_print(out_pad,16,"BLOCKED",'s');
+      break;
+    case 3:
+      pad_print(out_pad,16,"WAITING",'s');
+      break;
+    case 4:
+      pad_print(out_pad,16,"HANGING",'s');
+      break;
+    case 5:
+      pad_print(out_pad,16,"DIED",'s');
+  }
+  pad_print(out_pad,16,&thread->elapsed_ticks,'x');
+
+  //打印进程名
+  memset(out_pad,0,16);
+  ASSERT(strlen(thread->name) < 17);
+  memcpy(out_pad,thread->name,strlen(thread->name));
+  strcat(out_pad,"\n");
+  sys_write(stdout_no,out_pad,strlen(out_pad));
+  return false;
+}
+
+void sys_ps()
+{
+  char* ps_title = "PID            PPID           STAT           ALLTICKS          NAME\n";
+  sys_write(stdout_no,ps_title,strlen(ps_title));
+  //遍历所有进程的链表
+  list_traversal(&thread_all_list,elem2thread_info,0);
+}
+
+/*回收thread_over task的页表,并且从调度队列中删除*/
+void thread_exit(struct task_struct *thread_over,bool need_schedule)
+{
+  intr_disable();
+  thread_over->status = TASK_DIED;
+
+  if (elem_find(&thread_ready_list,&thread_over->general_tag))
+  {
+    list_remove(&thread_over->general_tag);
+  }
+
+  if (thread_over->pgdir)//是用户进程
+  {
+    mfree_page(PF_KERNEL,thread_over->pgdir,1);
+  }
+
+  //从全局调度队列中去掉任务
+  list_remove(&thread_over->all_list_tag);
+
+  //回收pcb(main线程的Pcb在内核空间,不是在堆中分配的
+  if (thread_over != main_thread)
+  {
+    mfree_page(PF_KERNEL,thread_over,1);
+  }
+
+  release_pid(thread_over->pid);
+
+  if (need_schedule)
+  {
+    schedule();
+    PANIC("thread_exit: should not be here\n");
+  }
+}
+
+//回调函数,判读pid
+static bool pid_check(struct list_elem *elem,int32_t pid)
+{
+  //拿到elem的task_struct
+  struct task_struct *thread = elem2entry(struct task_struct,all_list_tag,elem);
+  if (thread->pid == pid)
+  {
+    return true;
+  }
+  return false;//继续 traversal();
+}
+
+//给出pid,得到 thread的task_struct
+struct task_struct *pid2thread(int32_t pid)
+{
+  //找到pid = pid的进程
+  struct list_elem *elem = list_traversal(&thread_all_list,pid_check,pid);
+  if (elem == NULL)
+  {
+    return NULL;
+  }
+  struct task_struct *thread = elem2entry(struct task_struct,all_list_tag,elem);
+  return thread;
+}
+
 /*内核线程初始化(调度器)运行前准备*/
 void thread_init()
 {
   put_str("[thread_init] start\n");
+
   list_init(&thread_ready_list);
   list_init(&thread_all_list);
+  //2021-4-29 初始化allocate_pid()中的pid_lock
+  // lock_init(&pid_lock);
+  //2021-6-03 pid_pool替换掉了pid_lock
+  pid_pool_init();
+
+  /*2021-5-22: 在main和idle线程创建前先创建init用户进程,是第一个用户进程,也是所有用户进程的父亲*/
+  process_execute(init,"init");
+
   //将main函数包装成线程
   make_main_thread();
+
+  //添加空闲线程
+  idle_thread = thread_start("IDLE",10,idle,NULL);
+
+  //6-8:添加 graphics 的内核线程来测试图形操作
+  // thread_start("Graphics",31,kernel_graphics,NULL);
+
   put_str("[thread_init] end\n");
 }

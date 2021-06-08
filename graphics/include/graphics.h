@@ -5,10 +5,12 @@
 /*调色板16个基础颜色*/
 #include "color256.h"
 
-/*!!! 2021/4/24: 已经将256个字符嵌入到kernel中了.地址是*/
-#define FONT_ASCII_START 0xc00091c0
-#define FONT_ASCII_END   0xc000a1c0
-#define FONT_ASCII_SIZE  0x1000
+/*!!! 2021/4/24: 已经将256个字符嵌入到kernel中了.地址是
+ *!!! 2021/6/8 : 因为字体写入到kernel.bin的地址是不固定的,这里用宏来表示是错的
+ * */
+// #define FONT_ASCII_START 0xc00091c0
+// #define FONT_ASCII_END   0xc000a1c0
+// #define FONT_ASCII_SIZE  0x1000
 #define FONT_SIZE        0x10
 
 /*VGA 320*200 模式下vram的物理起始地址*/
@@ -31,4 +33,5 @@ struct BOOT_INFO
 
 // 4/22添加图形debug函数
 void graphics_init();
+void kernel_graphics();
 #endif

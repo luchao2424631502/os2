@@ -214,8 +214,8 @@ static void intr_keyboard_handler()
       //键盘ioqueue不为空
       if (!ioq_full(&kbd_buf))
       {
-        //测试ioqueue 此处put_char打印
-        put_char(cur_char);
+        //测试ioqueue 此处put_char打印,有shell处理了,所以不需要put_char来测试了
+        // put_char(cur_char);
         ioq_putchar(&kbd_buf,cur_char);
 
       }

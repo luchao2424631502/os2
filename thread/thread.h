@@ -6,18 +6,23 @@
 #include "bitmap.h"
 #include "memory.h"
 
+#define TASK_NAME_LEN 16
+#define MAX_FILES_OPEN_PER_PROC 8
+
 /*定义了一个函数类型,内核线程函数*/
 typedef void thread_func(void*);
+/*定义pid_t*/
+typedef int16_t pid_t;
 
 /*任务的状态*/
 enum task_status
 {
-  TASK_RUNNING, //running
-  TASK_READY,   //ready
-  TASK_BLOCKED, //blocked
-  TASK_WAITING,//waitting
-  TASK_HANGING, //hang
-  TASK_DIED     //died
+  TASK_RUNNING, //0 running
+  TASK_READY,   //1 ready
+  TASK_BLOCKED, //2 blocked
+  TASK_WAITING, //3 waitting
+  TASK_HANGING, //4 hang
+  TASK_DIED     //5 died
 };
 
 /*中断发生时保存上下文的结构*/
@@ -61,6 +66,7 @@ struct thread_stack
 
   void (*eip) (thread_func* func,void *func_arg);
 
+/* 下面的参数只是第一次填充时供调度上cpu,后面的thread栈就不再使用下面的参数了*/
   void (*unused_retaddr); //call调用函数按照C约定栈顶是返回地址,所以这类伪装成返回地址
   thread_func* function;
   void* func_arg;
@@ -70,8 +76,9 @@ struct thread_stack
 struct task_struct
 {
   uint32_t *self_kstack;
+  pid_t pid;
   enum task_status status;
-  char name[16];
+  char name[TASK_NAME_LEN];
   uint8_t priority;
 
   //2020/4/2:task_struct添加新成员
@@ -86,7 +93,15 @@ struct task_struct
   
   /*用户进程的虚拟地址空间*/
   struct virtual_addr userprog_vaddr;
+  /*2021-5-1: 添加每个用于进程的mem_block_desc[]*/
+  struct mem_block_desc u_block_desc[DESC_CNT];
   
+  /*5-14添加文件描述符数组*/
+  int32_t fd_table[MAX_FILES_OPEN_PER_PROC];
+  
+  uint32_t cwd_inode_nr;        //进程所在工作目录的inode
+  pid_t parent_pid;
+  int8_t exit_status;   //进程退出后的状态
   //魔数用来检测pcb栈边界
   uint32_t stack_magic;
 };
@@ -106,4 +121,10 @@ void thread_init();
 void thread_block(enum task_status);
 void thread_unblock(struct task_struct *);
 
+void thread_yield();
+pid_t fork_pid();
+void sys_ps();
+void thread_exit(struct task_struct *,bool );
+struct task_struct *pid2thread(int32_t);
+void release_pid(pid_t);
 #endif

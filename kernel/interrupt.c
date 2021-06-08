@@ -9,10 +9,15 @@
 #define PIC_S_CTRL 0xa0 //从片
 #define PIC_S_DATA 0xa1
 
-#define IDT_DESC_CNT 0x30 //支持的中断数量
+/*2021-4-28:为了支持0x80中断,
+ * 所以增加中断数组大小到0x81
+ * syscall_handler表示0x80中断的处理函数 
+ * */
+#define IDT_DESC_CNT  0x81  
 
 #define EFLAGS_IF 0x00000200
 #define GET_EFLAGS(EFLAG_VAR) asm volatile ("pushfl; popl %0":"=g"(EFLAG_VAR))
+extern uint32_t syscall_handler(void);
 
 struct gate_desc{
   uint16_t func_offset_low_word;
@@ -25,9 +30,9 @@ struct gate_desc{
 static void make_idt_desc(struct gate_desc*,uint8_t,intr_handler);
 
 static struct gate_desc idt[IDT_DESC_CNT]; //IDT表自定义中断的描述符
-extern intr_handler intr_entry_table[IDT_DESC_CNT]; //引用kernel.s中定义的中断处理程序入口 
 char *intr_name[IDT_DESC_CNT];
 intr_handler idt_table[IDT_DESC_CNT]; //C中的中断处理程序入口
+extern intr_handler intr_entry_table[IDT_DESC_CNT]; //引用kernel.s中定义的中断处理程序入口 
 
 /*初始化可编程中断控制器8259A*/
 static void pic_init()
@@ -47,6 +52,7 @@ static void pic_init()
   //打开主片IR0的时钟中断
   // outb(PIC_M_DATA,0xfe);
   // outb(PIC_S_DATA,0xff);
+// <<<<<<< HEAD
 
   //打开键盘中断
   //outb(PIC_M_DATA,0xfd);
@@ -57,9 +63,22 @@ static void pic_init()
   // outb(PIC_S_DATA,0xef);
 
   //测试:打开键盘中断+irq2+鼠标中断
-  outb(PIC_M_DATA,0xf9);
-  outb(PIC_S_DATA,0xef);
+  // outb(PIC_M_DATA,0xf9);
+  // outb(PIC_S_DATA,0xef);
+// =======
 
+  //同时打开键盘中断和时钟中断
+  // outb(PIC_M_DATA,0xfc);
+  // outb(PIC_S_DATA,0xff);
+
+  //键盘+时钟+irq2+硬盘
+  // outb(PIC_M_DATA,0xf8);
+  // outb(PIC_S_DATA,0xbf);
+// >>>>>>> master
+
+  /*合并后应该开启的中断:时钟+irq2+键盘+鼠标+硬盘*/
+  outb(PIC_M_DATA,0xf8);
+  outb(PIC_S_DATA,0xaf);
   put_str("    pic_init done\n");
 }
 
@@ -81,6 +100,11 @@ static void idt_desc_init()
   {
     make_idt_desc(&idt[i],IDT_DESC_ATTR_DPL0,intr_entry_table[i]);
   }
+  /*2021-4-28:0x80中断实现系统调用,
+   * 描述符单独初始化,dpl=3,ring 3用户进程就能产生并使用0x80中断,
+   * 并且中断处理程序也不在intr_entry_table[]中,意思是栈操作自己重写
+   * */
+  make_idt_desc(&idt[0x80],IDT_DESC_ATTR_DPL3,syscall_handler);
   put_str("    idt_desc_init done\n");
 }
 
@@ -116,7 +140,7 @@ static void general_intr_handler(uint8_t vec_nr)
     put_int(page_fault_vaddr);
   }
   
-  put_str("[---- excetion ----]\n");
+  put_str("\n[---- excetion ----]\n");
   while(1){}
 }
 

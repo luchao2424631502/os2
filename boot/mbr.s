@@ -44,9 +44,12 @@ SECTION MBR vstart=0x7c00
 ;为什么我们没有在后面接收到,因为现在位于实模式下,寻址模式是cs*16+ip
 ;
 ;开启VGA模式
+%ifdef mbr 
     mov al,0x13     ;VGA 320*200*8
     mov ah,0x00
     int 0x10
+
+%endif
 
 ;graphics:------
 

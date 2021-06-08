@@ -2,16 +2,25 @@
 #include "font.h"
 #include "string.h"
 
+extern uint8_t _binary_graphics_1_in_start[];
+extern uint8_t _binary_graphics_1_in_end[];
+extern uint8_t _binary_graphics_1_in_size[];
+
 //测试字体A 8*16个像素
 char font_A[16] = {
   0x00,0x18,0x18,0x18,0x18,0x24,0x24,0x24,
   0x24,0x7e,0x42,0x42,0x42,0xe7,0x00,0x00
 };
 
-//得到字体的char*地址,方便putfont8 的char* font参数
+/*
+ * 得到字体的char*地址,方便putfont8 的char* font参数
+ * !!!注意!!!字体最后写入到kernel.bin的地址是不固定的,bug找了半天才发现
+*/
 char* font_vaddr(char ch)
 {
-  return (char *)(FONT_ASCII_START + ch * FONT_SIZE);
+  uint32_t vaddr = (uint32_t)_binary_graphics_1_in_start;
+  return (char *)(vaddr + ch * FONT_SIZE);
+  // return (char *)(FONT_ASCII_START + ch * FONT_SIZE);
 }
 
 //显示字符 8*16格式

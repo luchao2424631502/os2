@@ -16,9 +16,9 @@ void list_insert_before(struct list_elem *before,struct list_elem *elem)
   //不知道当前是否开启中断,但是要关闭时钟中断,退出后恢复原来时钟中断的状态
   enum intr_status intr_old_status = intr_disable();
 
+  before->prev->next = elem;
   elem->prev = before->prev;
   elem->next = before;
-  before->prev->next = elem;
   before->prev = elem;
 
   intr_set_status(intr_old_status);
@@ -107,5 +107,5 @@ uint32_t list_len(struct list *list)
 /*10.判断链表是否为空*/
 bool list_empty(struct list *list)
 {
-  return list->head.next == &list->tail ? true : false;
+  return (list->head.next == &list->tail ? true : false);
 }

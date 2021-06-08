@@ -3,25 +3,35 @@ ENTRY_POINT=0xc0001500
 AS				 =nasm
 CC  			 =gcc
 LD 				 =ld
-INCLUDE		 =-I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/ -I graphics/include
+INCLUDE		 =-I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/ -I graphics/include -I fs/ -I lib/shell
+# INCLUDE		 =-I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/ -I fs/ -I lib/shell
 ASFLAGS    =-f elf
-CFLAGS     =-Wall $(INCLUDE) -c -m32 -fno-builtin -fno-stack-protector -W #-Wno-unused-variable -Wmissing-prototypes -Wstrict-prototypes
+bflags		 = 
+CFLAGS     =-Wall $(INCLUDE) -c -m32 -fno-builtin -fno-stack-protector -W -Wno-implicit-fallthrough#-Wno-unused-variable -Wmissing-prototypes -Wstrict-prototypes
 #Wall 和 W 是警告信息,Wstrict-prototypes:函数声明需要指出参数类型  Wmissing-prototypes:没有预先声明函数旧定义全局函数将警告
 LDFLAGS    =-Ttext $(ENTRY_POINT) -e main -m elf_i386 -Map $(BUILD_DIR)/kernel.map
-OBJS       =$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o $(BUILD_DIR)/timer.o\
-						$(BUILD_DIR)/debug.o $(BUILD_DIR)/string.o $(BUILD_DIR)/bitmap.o $(BUILD_DIR)/memory.o\
-						$(BUILD_DIR)/thread.o $(BUILD_DIR)/list.o\
-						$(BUILD_DIR)/kernel.o $(BUILD_DIR)/print.o $(BUILD_DIR)/switch.o $(BUILD_DIR)/sync.o\
-						$(BUILD_DIR)/console.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/ioqueue.o\
-						$(BUILD_DIR)/tss.o $(BUILD_DIR)/process.o
+OBJS       =$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o \
+						$(BUILD_DIR)/timer.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/string.o \
+						$(BUILD_DIR)/bitmap.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/thread.o \
+						$(BUILD_DIR)/list.o $(BUILD_DIR)/kernel.o $(BUILD_DIR)/print.o \
+						$(BUILD_DIR)/switch.o $(BUILD_DIR)/sync.o $(BUILD_DIR)/console.o \
+						$(BUILD_DIR)/keyboard.o $(BUILD_DIR)/ioqueue.o $(BUILD_DIR)/tss.o \
+						$(BUILD_DIR)/process.o $(BUILD_DIR)/syscall.o $(BUILD_DIR)/syscall-init.o \
+						$(BUILD_DIR)/stdio.o $(BUILD_DIR)/stdio-kernel.o\
+						$(BUILD_DIR)/ide.o $(BUILD_DIR)/fs.o $(BUILD_DIR)/inode.o\
+						$(BUILD_DIR)/file.o $(BUILD_DIR)/dir.o $(BUILD_DIR)/fork.o\
+						$(BUILD_DIR)/shell.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/buildin_cmd.o\
+						$(BUILD_DIR)/exec.o $(BUILD_DIR)/wait_exit.o $(BUILD_DIR)/pipe.o
 GRAPHOBJS	 =$(BUILD_DIR)/graphics.o $(BUILD_DIR)/vramio.o $(BUILD_DIR)/font.o\
 						$(BUILD_DIR)/font_binary.o\
 						$(BUILD_DIR)/paint.o $(BUILD_DIR)/mouse.o
+#CFLAGS     =-Wall $(INCLUDE) -c -m32 -fno-builtin -fno-stack-protector -W -Wno-implicit-fallthrough#-Wmissing-prototypes -Wstrict-prototypes
+#Wall 和 W 是警告信息,Wstrict-prototypes:函数声明需要指出参数类型  Wmissing-prototypes:没有预先声明函数旧定义全局函数将警告
 
 BOOTLOADER = $(BUILD_DIR)/mbr.bin $(BUILD_DIR)/loader.bin
 # ---- boot + loader ----
 $(BUILD_DIR)/mbr.bin: boot/mbr.s
-	$(AS) -Iboot/include/ $< -o $@
+	$(AS) $(bflags) -Iboot/include/ $< -o $@
 
 $(BUILD_DIR)/loader.bin: boot/loader.s
 	$(AS) -Iboot/include/ $< -o $@
@@ -72,6 +82,54 @@ $(BUILD_DIR)/tss.o:userprog/tss.c
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/process.o:userprog/process.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/syscall.o:lib/user/syscall.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/syscall-init.o:userprog/syscall-init.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/stdio.o:lib/stdio.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/stdio-kernel.o:lib/kernel/stdio-kernel.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/ide.o:device/ide.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/fs.o:fs/fs.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/inode.o:fs/inode.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/file.o:fs/file.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/dir.o:fs/dir.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/fork.o:userprog/fork.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/shell.o:lib/shell/shell.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/assert.o:lib/user/assert.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/buildin_cmd.o:lib/shell/buildin_cmd.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/exec.o:userprog/exec.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/wait_exit.o:userprog/wait_exit.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/pipe.o:lib/shell/pipe.c
 	$(CC) $(CFLAGS) $< -o $@
 
 #---- ASM汇编文件编译 ----

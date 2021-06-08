@@ -95,3 +95,38 @@ VECTOR 0x2c,ZERO  ;irq12: ps/2鼠标
 VECTOR 0x2d,ZERO  ;irq13: fpu异常
 VECTOR 0x2e,ZERO  ;irq14: 硬盘
 VECTOR 0x2f,ZERO  ;irq15: 保留
+
+;---- 2021-4-28 添加0x80中断 ----
+[bits 32]
+extern syscall_table;系统调用函数表
+section .text
+global syscall_handler
+syscall_handler:
+  push 0 ;ZERO
+
+  push ds
+  push es
+  push fs
+  push gs
+
+  pushad
+
+  ;没有像上边一样现在发送EOI
+  ;因为中断不是从8259A发生的,而是cpu内部指令产生的
+
+  push 0x80
+
+; 系统调用的参数传递顺序由ABI规定好了,然后此处从右向左入栈就行,(此os最多支持3个参数的系统调用
+  push edx
+  push ecx
+  push ebx 
+
+; 进入具体系统调用
+  call [syscall_table + eax*4]
+  add esp,12    ;c call 调用者来清理栈
+
+;将栈中经过pushad后的eax的值强制修改为上面系统调用函数的返回值
+  mov [esp + 8*4],eax 
+
+;调用 通用的中断退出栈清理函数
+  jmp intr_exit
