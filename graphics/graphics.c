@@ -9,6 +9,7 @@
 #include "mouse.h"
 
 #include "print.h"
+#include "vramio.h"
 
 extern uint8_t _binary_graphics_1_in_start[];
 extern uint8_t _binary_graphics_1_in_end[];
@@ -28,6 +29,7 @@ void graphics_init()
 {
   /*初始化调色板*/
   init_palette();
+
 
   /*桌面基本元素初始化*/
   desktop_init();
@@ -119,26 +121,21 @@ static void screen_init(uint8_t *vram_,uint32_t x,uint32_t y)
   boxfill8(vram,xsize,COL8_ffffff,xsize-47 ,ysize-3   ,xsize-4   ,ysize-3 );//右矩下白边
   boxfill8(vram,xsize,COL8_ffffff,xsize-3  ,ysize-24  ,xsize-3   ,ysize-3 );//右矩右白边
 
-  /*
-  putfont8(vram,xsize,8,0,COL8_ffff00 ,font_vaddr(' '));
-  putfont8(vram,xsize,16,0,COL8_ffff00,font_vaddr('H'));
-  putfont8(vram,xsize,24,0,COL8_ffff00,font_vaddr('e'));
-  putfont8(vram,xsize,32,0,COL8_ffff00,font_vaddr('l'));
-  putfont8(vram,xsize,40,0,COL8_ffff00,font_vaddr('l'));
-  putfont8(vram,xsize,48,0,COL8_ffff00,font_vaddr('o'));
-  putfont8(vram,xsize,56,0,COL8_ffff00,font_vaddr('!'));
-  putfont8(vram,xsize,64,0,COL8_ffff00,font_vaddr('!'));
-  */
-  putfont8_str(vram,xsize,160,0,COL8_00ffff,"LLC OS:Hello,World!");
+  /*测试*/
+  putfont8(vram,xsize,0,0,COL8_000000,'A');
+  putfont8(vram,xsize,8,0,COL8_840000,'B');
+  putfont8(vram,xsize,16,0,COL8_840000,'C');
+  putfont8(vram,xsize,24,0,COL8_000000,'1');
   
-  putfont8_int(vram,xsize,0,0,COL8_00ffff,(uint32_t)vram);
-  putfont8_int(vram,xsize,0,16,COL8_00ffff,x);
+  putfont8_str(vram,xsize,0,16,7,"");
+  putfont8_str(vram,xsize,16,16,3,"llc OS");
+
 
   /*显示鼠标*/
   char mcursor[256];
   /*根据鼠标图像得到 像素颜色数组*/
   init_mouse_cursor8(mcursor,BACKGROUND_COLOR);
   /*将鼠标显示出来*/
-  putblock8(vram,xsize,16,16,150,90,mcursor,16);
+  putblock8(vram,xsize,16,16,0,64,mcursor,16);
 }
 

@@ -27,6 +27,12 @@
 #include "shell.h"
 #include "assert.h"
 
+#include "graphics.h"
+#include "font.h"
+#include "vramio.h"
+#include "mouse.h"
+#include "paint.h"
+
 /*用户进程*/
 // process_execute(u_prog_a,"user_prog_a");
 // process_execute(u_prog_b,"user_prog_b");
@@ -41,7 +47,6 @@ extern uint8_t _binary_graphics_1_in_size[];
 
 int main()
 {
-  // put_str("I'm kernel\n");
   /*graphics模块现在位于内核主线程中,*/
   init_all();
   
@@ -49,17 +54,60 @@ int main()
 
 //<<<<<<< HEAD
 
-  debug_print_int("start=",(uint32_t)_binary_graphics_1_in_start);
-  debug_print_int("end=",(uint32_t)_binary_graphics_1_in_end);
-  debug_print_int("size=",(uint32_t)_binary_graphics_1_in_size);
+  //80*25模式下的
+  // debug_print_int("start=",(uint32_t)_binary_graphics_1_in_start);
 
-  uint8_t *point = (uint8_t *)0xc00091c0;
-  debug_print_int("off_set_0x12=",(uint8_t)*(point+0x12));
-  debug_print_int("off_set_0x13=",(uint8_t)*(point+0x13));
-  put_int(99);
-  put_char('\n');
-  put_int(-12);
+  int mouse_phase = 0;
+  // unsigned char mouse_dbuf[3];
+  uint8_t mouse_dbuf[3];
+  uint8_t data;
 
+  while (1)
+  {
+    enum intr_status old_status = intr_disable();
+    if (!ioq_empty(&mouse_buf))
+      data = ioq_getchar(&mouse_buf);
+    intr_set_status(old_status);
+
+    if (mouse_phase == 0)
+    {
+      //等待进入鼠标的0xfa状态
+      if (data == 250)
+      {
+        mouse_phase = 1;
+      }
+    }
+    //拿到第一个字节
+    else if (mouse_phase == 1)
+    {
+      mouse_dbuf[0] = data;
+      mouse_phase = 2;
+    }
+    //拿到第2个字节
+    else if (mouse_phase == 2)
+    {
+      mouse_dbuf[1] = data;
+      mouse_phase = 3;
+    }
+    //拿到第3个字节
+    else if (mouse_phase == 3) 
+    {
+      mouse_dbuf[2] = data;
+      mouse_phase = 1;
+
+      char buf[50];
+      sprintf(buf,"%d %d %d",mouse_dbuf[0],mouse_dbuf[1],mouse_dbuf[2]);
+      putfont8_str((uint8_t *)0xc00a0000,320,0,32,0,buf);
+      boxfill8((uint8_t *)0xc00a0000,320,7,0,32,0+88,32+32);
+
+      memset(buf,0,50);
+      // putfont8_int((uint8_t*)0xc00a0000,320,0,48,0,mouse_dbuf[0]);
+      // putfont8_int((uint8_t*)0xc00a0000,320,0+32,48,0,mouse_dbuf[1]);
+      // putfont8_int((uint8_t*)0xc00a0000,320,0+64,48,0,mouse_dbuf[2]);
+    }
+  }
+
+  
   /*
   thread_start("k_thread_a",31,k_thread_a,"argA ");
   thread_start("k_thread_b",31,k_thread_b,"argB ");

@@ -1,6 +1,7 @@
 #include "graphics.h"
 #include "font.h"
 #include "string.h"
+#include <stdio.h>
 
 extern uint8_t _binary_graphics_1_in_start[];
 extern uint8_t _binary_graphics_1_in_end[];
@@ -16,17 +17,17 @@ char font_A[16] = {
  * 得到字体的char*地址,方便putfont8 的char* font参数
  * !!!注意!!!字体最后写入到kernel.bin的地址是不固定的,bug找了半天才发现
 */
-char* font_vaddr(char ch)
+static char* font_vaddr(char ch)
 {
   uint32_t vaddr = (uint32_t)_binary_graphics_1_in_start;
   return (char *)(vaddr + ch * FONT_SIZE);
-  // return (char *)(FONT_ASCII_START + ch * FONT_SIZE);
 }
 
 //显示字符 8*16格式
 void putfont8(uint8_t *vram,int xsize,int x,int y,
-    uint8_t color,char *font)
+    uint8_t color,char ch)
 {
+  char *font = font_vaddr(ch);
   uint8_t data;
   uint8_t *p;
   int and[8] = {0x1,0x2,0x4,0x8,0x10,0x20,0x40,0x80};
@@ -37,7 +38,7 @@ void putfont8(uint8_t *vram,int xsize,int x,int y,
     for (int j=0; j<8; j++)
     {
       if (data & and[j])
-        p[7-j] = color;
+        p[7-j] = color;//具体像显存地址处写入的是颜色index
     }
   }
 }
@@ -48,7 +49,8 @@ void putfont8_str(uint8_t *vram,int xsize,int x,int y,
 {
   for (; *str != 0; str++)
   {
-    putfont8(vram,xsize,x,y,color,font_vaddr(*str));
+    // putfont8(vram,xsize,x,y,color,font_vaddr(*str));
+    putfont8(vram,xsize,x,y,color,*str);
     x += 8;
   }
 }
@@ -56,24 +58,10 @@ void putfont8_str(uint8_t *vram,int xsize,int x,int y,
 //显示10进制整数
 void putfont8_int(uint8_t *vram,int xsize,int x,int y,uint8_t color,uint32_t num)
 {
-  char ans[10];
+  char ans[15];
   memset(ans,0,10);
 
-  int mod = 0;
-  int index = 0;
-  while (num)
-  {
-    mod = num % 10;
-    ans[index++] = mod + '0';
-    num = num / 10;
-  }
-
-  char res[10];
-  int count = 0;
-  for (int i=index-1; i>=0; i--)
-    res[count++] = ans[i];
-  res[count] = 0;
-
-  putfont8_str(vram,xsize,x,y,color,res);
+  sprintf(ans,"%d",num);
+  putfont8_str(vram,xsize,x,y,color,ans);
 }
 

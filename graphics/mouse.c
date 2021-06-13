@@ -6,6 +6,12 @@
 #include "font.h"
 #include "paint.h"
 #include "io.h"
+#include "stdio.h"
+#include "vramio.h"
+#include "ioqueue.h"
+
+//接收鼠标传来的数据
+struct ioqueue mouse_buf;
 
 static void intr_mouse_handler();
 static void mouse_chip_init();
@@ -65,6 +71,9 @@ void putblock8(uint8_t *vram,int vxsize,int pxsize,int pysize,
 void mouse_init()
 {
   put_str("[mouse_init] start\n");
+
+  /*2021-6-11:在mouse中断开启前,将mouse buf初始化好*/
+  ioqueue_init(&mouse_buf);
   
   //添加鼠标中断处理
   register_handler(0x2c,intr_mouse_handler);
@@ -75,13 +84,24 @@ void mouse_init()
   put_str("[mouse_init] done\n");
 }
 
+/*鼠标中断*/
 static void intr_mouse_handler()
 {
   struct BOOT_INFO *bootinfo = (struct BOOT_INFO*)(0xc0000ff0);
-  boxfill8(bootinfo->vram,bootinfo->scrnx,COL8_000000,0,0,32*8-1,15);
-  putfont8_str(bootinfo->vram,bootinfo->scrnx,0,0,COL8_ffff00,"IRQ 0x2c PS/2 mouse");
 
-  uint16_t data = inb(PORT_KEYDAT);
+  //鼠标中断debug测试
+  // boxfill8(bootinfo->vram,bootinfo->scrnx,COL8_000000,0,0,32*8-1,15);
+  // putfont8_str(bootinfo->vram,bootinfo->scrnx,0,0,COL8_ffff00,"IRQ 0x2c PS/2 mouse");
+
+  /*2021-6-11继续*/
+  uint8_t data = inb(PORT_KEYDAT);
+  boxfill8((uint8_t *)0xc00a0000,320,14,160,100,160+24,100+48);
+  putfont8_int((uint8_t *)0xc00a0000,320,160,100,0,data);
+
+  if (!ioq_full(&mouse_buf))
+  {
+    ioq_putchar(&mouse_buf,data);
+  }
 }
 
 static void wait_keysta_ready()

@@ -199,9 +199,10 @@ static void intr_keyboard_handler()
     char cur_char = keymap[index][shift];
 
     //在graphics下测试键盘中断是否发生
-    struct BOOT_INFO *bootinfo = (struct BOOT_INFO*)(0xc0000ff0);
-    boxfill8(bootinfo->vram,bootinfo->scrnx,COL8_000000,0,0,32*8-1,15);
-    putfont8_str(bootinfo->vram,bootinfo->scrnx,0,0,COL8_ffffff,&cur_char);
+    // struct BOOT_INFO *bootinfo = (struct BOOT_INFO*)(0xc0000ff0);
+    // boxfill8(bootinfo->vram,bootinfo->scrnx,COL8_000000,0,0,32*8-1,15);
+    // putfont8_str(bootinfo->vram,bootinfo->scrnx,0,0,COL8_ffffff,&cur_char);
+
     /*ascii != 0*/
     if (cur_char)
     {
@@ -211,7 +212,7 @@ static void intr_keyboard_handler()
         cur_char -= 'a';
       }
 
-      //键盘ioqueue不为空
+      //键盘ioqueue没有满
       if (!ioq_full(&kbd_buf))
       {
         //测试ioqueue 此处put_char打印,有shell处理了,所以不需要put_char来测试了
