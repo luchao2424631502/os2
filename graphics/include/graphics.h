@@ -33,5 +33,5 @@ struct BOOT_INFO
 
 // 4/22添加图形debug函数
 void graphics_init();
-void kernel_graphics();
+void kernel_graphics(void *UNUSED);
 #endif

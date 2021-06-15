@@ -16,3 +16,8 @@ log: tmp/bochsout.txt
 mouse: enabled=1
 #keyboard_mapping: enabled=1, map=/usr/local/share/bochs/keymaps/x11-pc-us.map
 keyboard: keymap=/usr/share/bochs/keymaps/x11-pc-us.map
+
+#9MHz
+#cpu:count=1,ips=15000000
+#vga:extension=none,update_freq=10,realtime=1
+

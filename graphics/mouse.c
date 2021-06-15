@@ -9,14 +9,27 @@
 #include "stdio.h"
 #include "vramio.h"
 #include "ioqueue.h"
+#include "debug.h"
+#include "string.h"
 
 //接收鼠标传来的数据
 struct ioqueue mouse_buf;
+//接收鼠标传来的数据的结构
+struct MOUSE_DEC
+{
+  uint8_t buf[3],phase;
+  int x,y,btn;
+};
+//鼠标中心的坐标
+int mx,my;
+//鼠标像素数组
+char mcursor[256];
 
 static void intr_mouse_handler();
 static void mouse_chip_init();
 static void wait_keysta_ready();
 static void enable_mouse();
+static int mouse_decode(struct MOUSE_DEC *,unsigned char );
 
 //鼠标指针大小是 16*16,生成的mouse数组每个char表示的是像素颜色
 void init_mouse_cursor8(char *mouse,char bc)
@@ -139,4 +152,132 @@ static void enable_mouse()
   wait_keysta_ready();
   /*向0x60端口写入0xf4,鼠标被激活,立刻向cpu发出中断*/
   outb(PORT_KEYDAT,MOUSECMD_ENABLE);
+}
+
+/*内核线程:用来处理鼠标中断发出来的数据*/
+void k_mouse(void *arg UNUSED)
+{
+  putfont8_str((uint8_t *)VGA_START_V,320,160,84,13,"I'm k_mouse");
+
+  struct MOUSE_DEC mdec;
+  mdec.phase = 0;
+
+  uint8_t mouse_dbuf[3];
+  memset(mouse_dbuf,0,3);
+  uint8_t data;
+
+  while (1)
+  {
+    enum intr_status old_status = intr_disable();
+    if (!ioq_empty(&mouse_buf))
+      data = ioq_getchar(&mouse_buf);
+    intr_set_status(old_status);
+
+    if (mouse_decode(&mdec,data) != 0)
+    {
+      char buf[50];
+      memset(buf,0,50);
+      sprintf(buf,"[lcr %d %d]",mdec.x,mdec.y);
+      if((mdec.btn & 0x01) != 0)
+      {
+        buf[1] = 'L';
+      }
+      if ((mdec.btn & 0x02) != 0)
+      {
+        buf[3] = 'R';
+      }
+      if ((mdec.btn & 0x04) != 0)
+      {
+        buf[2] = 'C';
+      }
+      boxfill8((uint8_t *)VGA_START_V,320,14,32,16,32+15*8 - 1,31);
+      putfont8_str((uint8_t *)VGA_START_V,320,32,16,0,buf);
+
+      /*鼠标指针的移动*/
+      boxfill8((uint8_t *)VGA_START_V,320,14,mx,my,mx+15,my+15);//隐藏鼠标
+
+      mx += mdec.x;
+      my += mdec.y;
+      if (mx < 0)
+      {
+        mx = 0;
+      }
+      if (my < 0)
+      {
+        my = 0;
+      }
+      if (mx > 320 - 16)
+      {
+        mx = 320-16;
+      }
+      if (my > 200 - 16)
+      {
+        my = 200 - 16;
+      }
+      memset(buf,0,sizeof(buf));
+      sprintf(buf,"(%d,%d)",mx,my);
+      //隐藏坐标
+      boxfill8((uint8_t *)VGA_START_V,320,14,0,0,79,15);
+      //显示坐标
+      putfont8_str((uint8_t *)VGA_START_V,320,0,0,7,buf);
+      //显示鼠标
+      putblock8((uint8_t *)VGA_START_V,320,16,16,mx,my,mcursor,16);
+    }
+  }
+
+  while (1);
+  PANIC("k_mouse: error");
+}
+
+static int mouse_decode(struct MOUSE_DEC *mdec,unsigned char data)
+{
+  if (mdec->phase == 0)
+  {
+    //等待进入鼠标的0xfa状态
+    if (data == 250)
+    {
+      mdec->phase = 1;
+    }
+    return 0;
+  }
+  //拿到第一个字节
+  if (mdec->phase == 1)
+  {
+    if ((data & 0xc8) == 0x08)
+    {
+      mdec->buf[0] = data;
+      mdec->phase = 2;
+    }
+    return 0;
+  }
+  //拿到第2个字节
+  if (mdec->phase == 2)
+  {
+    mdec->buf[1] = data; 
+    mdec->phase = 3;
+    return 0;
+  }
+  //拿到第3个字节
+  if (mdec->phase == 3) 
+  {
+    mdec->buf[2] = data;
+    mdec->phase = 1;
+
+    mdec->btn = mdec->buf[0] & 0x07;//只取低3bit
+    mdec->x = mdec->buf[1];
+    mdec->y = mdec->buf[2];
+    if ((mdec->buf[0] & 0x10) != 0)
+    {
+      mdec->x |= 0xffffff00;
+    }
+    if ((mdec->buf[0] & 0x20) != 0)
+    {
+      mdec->y |= 0xffffff00;
+    }
+
+    mdec->y = -mdec->y;
+
+    return 1;
+  }
+  return -1;
 }

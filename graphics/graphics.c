@@ -3,13 +3,14 @@
 #include "interrupt.h"
 #include "io.h"
 #include "debug.h"
-
+#include "global.h"
 #include "font.h"
 #include "paint.h"
 #include "mouse.h"
 
 #include "print.h"
 #include "vramio.h"
+#include "stdio.h"
 
 extern uint8_t _binary_graphics_1_in_start[];
 extern uint8_t _binary_graphics_1_in_end[];
@@ -20,16 +21,19 @@ static void set_palette(int,int,unsigned char *);
 static void desktop_init();
 static void screen_init();
 
-/*打算在内核中测试(实现)图形操作*/
-void kernel_graphics()
+/*k_graphics内核线程*/
+void kernel_graphics(void *arg UNUSED)
 {
+  //将原来的init.c中初始化弄到后面来.
+  graphics_init();
+
+  while(1);
 }
 
 void graphics_init()
 {
   /*初始化调色板*/
   init_palette();
-
 
   /*桌面基本元素初始化*/
   desktop_init();
@@ -122,20 +126,25 @@ static void screen_init(uint8_t *vram_,uint32_t x,uint32_t y)
   boxfill8(vram,xsize,COL8_ffffff,xsize-3  ,ysize-24  ,xsize-3   ,ysize-3 );//右矩右白边
 
   /*测试*/
-  putfont8(vram,xsize,0,0,COL8_000000,'A');
-  putfont8(vram,xsize,8,0,COL8_840000,'B');
-  putfont8(vram,xsize,16,0,COL8_840000,'C');
-  putfont8(vram,xsize,24,0,COL8_000000,'1');
+  // putfont8(vram,xsize,0,0,COL8_000000,'A');
+  // putfont8(vram,xsize,8,0,COL8_840000,'B');
+  // putfont8(vram,xsize,16,0,COL8_840000,'C');
+  // putfont8(vram,xsize,24,0,COL8_000000,'1');
   
   putfont8_str(vram,xsize,0,16,7,"");
   putfont8_str(vram,xsize,16,16,3,"llc OS");
 
 
   /*显示鼠标*/
-  char mcursor[256];
   /*根据鼠标图像得到 像素颜色数组*/
   init_mouse_cursor8(mcursor,BACKGROUND_COLOR);
+  /*计算画面中心坐标*/
+  mx = (320-16)/2;
+  my = (200-28-16)/2;
   /*将鼠标显示出来*/
-  putblock8(vram,xsize,16,16,0,64,mcursor,16);
+  putblock8(vram,xsize,16,16,mx,my,mcursor,16);
+  // char buf[64];
+  // sprintf(buf,"(%d,%d)",mx,my);
+  // putfont8_str(vram,xsize,0,0,7,buf);
 }
 

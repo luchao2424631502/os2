@@ -19,6 +19,7 @@
 void init_all()
 {
   put_str("[init_all]\n");
+
   idt_init(); //初始化中断
   // 3/29晚上测试mem_init()函数;
   mem_init();
@@ -41,8 +42,8 @@ void init_all()
   // 4/25 graphics下mouse初始化(添加中断处理程序
   mouse_init();
 
-  // 4/22 graphics部分
-  graphics_init();
+  // 4/22 graphics初始化, 6-13:将graphics_init拿到k_graphics内核线程中做
+  // graphics_init();
 
 // =======
   // 4-29: 添加syscall

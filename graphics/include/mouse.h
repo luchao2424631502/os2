@@ -19,12 +19,16 @@
 #define MOUSECMD_ENABLE 0xf4
 
 extern struct ioqueue mouse_buf;
+extern int mx,my;
+extern char mcursor[256];
 
 void init_mouse_cursor8(char *,char );
 void putblock8(uint8_t *,int ,int ,int ,int ,int ,char *,int );
 
 /*注册ps/2鼠标中断*/
 void mouse_init();
+
+void k_mouse(void* UNUSED);
 
 #endif
 

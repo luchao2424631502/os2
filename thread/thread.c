@@ -447,10 +447,9 @@ void thread_init()
   make_main_thread();
 
   //添加空闲线程
-  idle_thread = thread_start("IDLE",10,idle,NULL);
+  // idle_thread = thread_start("IDLE",10,idle,NULL);
+  idle_thread = thread_start("idle",10,idle,NULL);
 
-  //6-8:添加 graphics 的内核线程来测试图形操作
-  // thread_start("Graphics",31,kernel_graphics,NULL);
 
   put_str("[thread_init] end\n");
 }
