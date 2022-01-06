@@ -126,18 +126,17 @@ static void mouse_chip_init()
 
 static void enable_mouse()
 {
-  /*
+  /*尝试设置鼠标的采样率
   wait_keysta_ready();
-  outb(PORT_KEYCMD,KEYCMD_SENDTO_MOUSE);
+  outb(PORT_KEYCMD,0xd4);
   wait_keysta_ready();
   outb(PORT_KEYDAT,0xf3);
 
   wait_keysta_ready();
   outb(PORT_KEYCMD,0xd4);
   wait_keysta_ready();
-  outb(PORT_KEYDAT,0xa);
+  outb(PORT_KEYDAT,0x14);
   */
-
 
   wait_keysta_ready();
   /*向鼠标发送数据前,先向控制寄存器0x64发送0xd4,
@@ -147,6 +146,34 @@ static void enable_mouse()
   /*向0x60端口写入0xf4,鼠标被激活,立刻向cpu发出中断*/
   outb(PORT_KEYDAT,MOUSECMD_ENABLE);
 }
+
+/*鼠标中断*/
+static void intr_mouse_handler()
+{
+  //鼠标中断debug测试
+  // struct BOOT_INFO *bootinfo = (struct BOOT_INFO*)(0xc0000ff0);
+  // boxfill8(bootinfo->vram,bootinfo->scrnx,COL8_000000,0,0,32*8-1,15);
+  // putfont8_str(bootinfo->vram,bootinfo->scrnx,0,0,COL8_ffff00,"IRQ 0x2c PS/2 mouse");
+
+  //直接发送结束中断: 在kernel/kernel.s进入中断的汇编就已经发送了,不需要在对8259A再发送一次
+  // outb(PIC_M_DATA,);
+  // outb();
+
+  /*2021-6-11继续: 在屏幕中央打印接受到的数据(debug用,目前看起来是不需要了)*/
+  uint8_t data = inb(PORT_KEYDAT);
+  // boxfill8((uint8_t *)0xc00a0000,320,14/2,160,100,160+24,100+16);
+  // putfont8_hex((uint8_t *)0xc00a0000,320,160,100,0,data);
+
+  if (!fifo8_full(&mouse_buf))
+    fifo8_put(&mouse_buf,data);
+  //上面用FIFO代替掉了ioqueue, ioqueue速度实在是太慢了
+  /*if (!ioq_full(&mouse_buf))
+  {
+    ioq_putchar(&mouse_buf,data);
+  }
+  */
+}
+
 
 /*内核线程:用来处理鼠标中断发出来的数据*/
 void k_mouse(void *arg UNUSED)
@@ -166,13 +193,15 @@ void k_mouse(void *arg UNUSED)
     if (!fifo8_empty(&mouse_buf))
       data = fifo8_get(&mouse_buf);
 
-    //ioqueue的代替
-    // if (!ioq_empty(&mouse_buf))
-      // data = ioq_getchar(&mouse_buf);
+    /*ioqueue的代替
+    if (!ioq_empty(&mouse_buf))
+      data = ioq_getchar(&mouse_buf);
+    */
     intr_set_status(old_status);
 
     if (mouse_decode(&mdec,data) != 0)
     {
+      /*不需要再显示解析出来的鼠标数据
       char buf[50];
       memset(buf,0,50);
       sprintf(buf,"[lcr %d %d]",mdec.x,mdec.y);
@@ -188,14 +217,18 @@ void k_mouse(void *arg UNUSED)
       {
         buf[2] = 'C';
       }
+      // 覆盖已经写入的字体
       boxfill8((uint8_t *)VGA_START_V,320,14,32,16,32+15*8 - 1,31);
       putfont8_str((uint8_t *)VGA_START_V,320,32,16,0,buf);
+      */
 
-      /*鼠标指针的移动*/
-      boxfill8((uint8_t *)VGA_START_V,320,14,mx,my,mx+15,my+15);//隐藏鼠标
-
+      //在绘制新鼠标前,要把旧鼠标去掉) (16x16鼠标像素的底色
+      boxfill8((uint8_t *)VGA_START_V,320,14,mx,my,mx+15,my+15);
+      
+      //计算新的鼠标坐标
       mx += mdec.x;
       my += mdec.y;
+      //这是防止鼠标跳到屏幕外
       if (mx < 0)
       {
         mx = 0;
@@ -212,12 +245,16 @@ void k_mouse(void *arg UNUSED)
       {
         my = 200 - 16;
       }
+
+      /*显示当前坐标(目前不需要)
       memset(buf,0,sizeof(buf));
       sprintf(buf,"(%d,%d)",mx,my);
-      //隐藏坐标
+      //隐藏坐标(填充坐标区域的底色)
       boxfill8((uint8_t *)VGA_START_V,320,14,0,0,79,15);
-      //显示坐标
+      //显示坐标(在此区域打印坐标)
       putfont8_str((uint8_t *)VGA_START_V,320,0,0,7,buf);
+      */
+      
       //显示鼠标
       putblock8((uint8_t *)VGA_START_V,320,16,16,mx,my,mcursor,16);
     }
@@ -279,31 +316,3 @@ static int mouse_decode(struct MOUSE_DEC *mdec,unsigned char data)
   }
   return -1;
 }
-
-/*鼠标中断*/
-static void intr_mouse_handler()
-{
-  //鼠标中断debug测试
-  // struct BOOT_INFO *bootinfo = (struct BOOT_INFO*)(0xc0000ff0);
-  // boxfill8(bootinfo->vram,bootinfo->scrnx,COL8_000000,0,0,32*8-1,15);
-  // putfont8_str(bootinfo->vram,bootinfo->scrnx,0,0,COL8_ffff00,"IRQ 0x2c PS/2 mouse");
-
-  //直接发送结束中断: 在kernel/kernel.s进入中断的汇编就已经发送了,不需要在对8259A再发送一次
-  // outb(PIC_M_DATA,);
-  // outb();
-
-  /*2021-6-11继续: 在屏幕中央打印接受到的数据(debug用,目前看起来是不需要了)*/
-  uint8_t data = inb(PORT_KEYDAT);
-  // boxfill8((uint8_t *)0xc00a0000,320,14/2,160,100,160+24,100+16);
-  // putfont8_hex((uint8_t *)0xc00a0000,320,160,100,0,data);
-
-  if (!fifo8_full(&mouse_buf))
-    fifo8_put(&mouse_buf,data);
-  //上面用FIFO代替掉了ioqueue, ioqueue速度实在是太慢了
-  /*if (!ioq_full(&mouse_buf))
-  {
-    ioq_putchar(&mouse_buf,data);
-  }
-  */
-}
-

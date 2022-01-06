@@ -11,6 +11,7 @@
 #include "print.h"
 #include "vramio.h"
 #include "stdio.h"
+#include "sheet.h"
 
 extern uint8_t _binary_graphics_1_in_start[];
 extern uint8_t _binary_graphics_1_in_end[];

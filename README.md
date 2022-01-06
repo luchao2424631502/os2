@@ -79,6 +79,24 @@ outb(0x60,0xf4);
 
 
 
+### 2022-1-6:修改mouse,添加图层api
+
+1. 已经换掉了鼠标中断接收数据的带锁的ioqueue(ring buffer),用上不带锁的ring buffer加速
+
+2. sheetctl_init的malloc_page好像没有加锁
+
+   替换malloc_page,用sys_malloc()来申请内存
+
+3. 
+
+4. 
+
+## 常用的源文件
+
+1. 有关线程初始化全在thread/thread.c thread_init()中
+
+
+
 
 
 ## 修复的问题
