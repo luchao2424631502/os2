@@ -131,8 +131,8 @@ static void screen_init(uint8_t *vram_,uint32_t x,uint32_t y)
   // putfont8(vram,xsize,16,0,COL8_840000,'C');
   // putfont8(vram,xsize,24,0,COL8_000000,'1');
   
-  putfont8_str(vram,xsize,0,16,7,"");
-  putfont8_str(vram,xsize,16,16,3,"llc OS");
+  // putfont8_str(vram,xsize,0,16,7,"");
+  // putfont8_str(vram,xsize,16,16,3,"llc OS");
 
 
   /*显示鼠标*/

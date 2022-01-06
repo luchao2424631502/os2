@@ -198,11 +198,6 @@ static void intr_keyboard_handler()
     uint8_t index = (scancode &= 0x00ff);
     char cur_char = keymap[index][shift];
 
-    //在graphics下测试键盘中断是否发生
-    // struct BOOT_INFO *bootinfo = (struct BOOT_INFO*)(0xc0000ff0);
-    // boxfill8(bootinfo->vram,bootinfo->scrnx,COL8_000000,0,0,32*8-1,15);
-    // putfont8_str(bootinfo->vram,bootinfo->scrnx,0,0,COL8_ffffff,&cur_char);
-
     /*ascii != 0*/
     if (cur_char)
     {
@@ -219,6 +214,10 @@ static void intr_keyboard_handler()
         // put_char(cur_char);
         ioq_putchar(&kbd_buf,cur_char);
 
+        //在graphics下测试键盘中断是否发生
+        // struct BOOT_INFO *bootinfo = (struct BOOT_INFO*)(0xc0000ff0);
+        // boxfill8(bootinfo->vram,bootinfo->scrnx,COL8_000000,0,0,16-1,15);
+        // putfont8(bootinfo->vram,bootinfo->scrnx,0,0,COL8_ffffff,cur_char);
       }
       return ;
     }

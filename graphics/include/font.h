@@ -14,5 +14,6 @@ void putfont8(uint8_t *,int ,int ,int ,uint8_t ,char );
 void putfont8_str(uint8_t *,int,int,int,uint8_t,char *);
 /*给定uint32 整数,显示整数,暂时用来debug*/
 void putfont8_int(uint8_t *,int,int,int,uint8_t,uint32_t);
-
+//以16进制打印数字
+void putfont8_hex(uint8_t *vram,int xsize,int x,int y,uint8_t color,uint32_t num);
 #endif

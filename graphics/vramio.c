@@ -4,17 +4,17 @@
 #define ONE_BYTE  1
 
 /*向vram中写1byte颜色*/
-void write_mem8(uint32_t addr,uint8_t data)
-{
-  memset((void*)addr,data,ONE_BYTE);
-}
+// void write_mem8(uint32_t addr,uint8_t data)
+// {
+  // memset((void*)addr,data,ONE_BYTE);
+// }
 
 //fifo初始化函数
-void fifo8_init(struct FIFO8 *fifo,int size,unsigned char *buf)
+void fifo8_init(struct FIFO8 *fifo)
 {
-  fifo->size = size;
-  fifo->buf  = buf;
-  fifo->free = size;  //剩余可用空间
+  fifo->size = FIFO8_BUF_SIZE;
+  // fifo->buf  = buf;
+  fifo->free = FIFO8_BUF_SIZE;  //剩余可用空间
   fifo->flags = 0;
   fifo->p = 0;  //p是下一数据写入的位置
   fifo->q = 0;  //q是下一个数据读出的位置
@@ -64,4 +64,16 @@ int fifo8_get(struct FIFO8 *fifo)
 int fifo8_status(struct FIFO8 *fifo)
 {
   return fifo->size - fifo->free;
+}
+
+//判断fifo是否为空
+int fifo8_empty(struct FIFO8 *fifo)
+{
+  return (fifo->free == FIFO8_BUF_SIZE)?1:0;
+}
+
+//判断fifo8是否满
+int fifo8_full(struct FIFO8 *fifo)
+{
+  return (fifo->free == 0)?1:0;
 }

@@ -13,7 +13,8 @@
 #include "string.h"
 
 //接收鼠标传来的数据
-struct ioqueue mouse_buf;
+// struct ioqueue mouse_buf;
+struct FIFO8 mouse_buf;
 //接收鼠标传来的数据的结构
 struct MOUSE_DEC
 {
@@ -86,7 +87,8 @@ void mouse_init()
   put_str("[mouse_init] start\n");
 
   /*2021-6-11:在mouse中断开启前,将mouse buf初始化好*/
-  ioqueue_init(&mouse_buf);
+  // ioqueue_init(&mouse_buf);
+  fifo8_init(&mouse_buf);
   
   //添加鼠标中断处理
   register_handler(0x2c,intr_mouse_handler);
@@ -97,30 +99,10 @@ void mouse_init()
   put_str("[mouse_init] done\n");
 }
 
-/*鼠标中断*/
-static void intr_mouse_handler()
-{
-  struct BOOT_INFO *bootinfo = (struct BOOT_INFO*)(0xc0000ff0);
-
-  //鼠标中断debug测试
-  // boxfill8(bootinfo->vram,bootinfo->scrnx,COL8_000000,0,0,32*8-1,15);
-  // putfont8_str(bootinfo->vram,bootinfo->scrnx,0,0,COL8_ffff00,"IRQ 0x2c PS/2 mouse");
-
-  /*2021-6-11继续*/
-  uint8_t data = inb(PORT_KEYDAT);
-  boxfill8((uint8_t *)0xc00a0000,320,14,160,100,160+24,100+48);
-  putfont8_int((uint8_t *)0xc00a0000,320,160,100,0,data);
-
-  if (!ioq_full(&mouse_buf))
-  {
-    ioq_putchar(&mouse_buf,data);
-  }
-}
-
+//等待输入缓冲区
 static void wait_keysta_ready()
 {
-  /*读取端口0x64检测鼠标电路的状态,如果第2bit=0,则鼠标
-   *可接受设置
+  /*读取端口0x64检测鼠标电路的状态,如果第2bit=0(intel8042的输入缓冲区为空),则可以对8042发送数据
    * */
   for (;;)
   {
@@ -129,15 +111,14 @@ static void wait_keysta_ready()
   }
 }
 
-/**/
+/*设置intel 8042的控制寄存器*/
 static void mouse_chip_init()
 {
-  /*通过键盘端口来开启鼠标芯片*/
   wait_keysta_ready();
-  //向0x64端口返回可写信号(0x60))
+  //向0x64端口(控制寄存器) 发送0x60: 表示要设置控制寄存器command byte
   outb(PORT_KEYCMD,KEYCMD_WRITE_MODE);
   wait_keysta_ready();
-  //向0x60端口发送0x47字节,(鼠标产生的数据可以通过键盘端口0x60读取
+  //向0x60端口(输入缓冲区) 发送0x47: 对应控制寄存器的每一位:1.enable鼠标中断 2.enable键盘中断 3.第二套扫描码转换为第一套扫描码
   outb(PORT_KEYDAT,KBC_MODE);
 
   enable_mouse();
@@ -145,8 +126,21 @@ static void mouse_chip_init()
 
 static void enable_mouse()
 {
+  /*
   wait_keysta_ready();
-  /*向鼠标发送数据前,先向端口发送0xd4,
+  outb(PORT_KEYCMD,KEYCMD_SENDTO_MOUSE);
+  wait_keysta_ready();
+  outb(PORT_KEYDAT,0xf3);
+
+  wait_keysta_ready();
+  outb(PORT_KEYCMD,0xd4);
+  wait_keysta_ready();
+  outb(PORT_KEYDAT,0xa);
+  */
+
+
+  wait_keysta_ready();
+  /*向鼠标发送数据前,先向控制寄存器0x64发送0xd4,
    * 然后向0x60端口写入的数据都会发送给鼠标*/
   outb(PORT_KEYCMD,KEYCMD_SENDTO_MOUSE);
   wait_keysta_ready();
@@ -157,7 +151,7 @@ static void enable_mouse()
 /*内核线程:用来处理鼠标中断发出来的数据*/
 void k_mouse(void *arg UNUSED)
 {
-  putfont8_str((uint8_t *)VGA_START_V,320,160,84,13,"I'm k_mouse");
+  putfont8_str((uint8_t *)VGA_START_V,320,160,0,13,"I'm k_mouse");
 
   struct MOUSE_DEC mdec;
   mdec.phase = 0;
@@ -169,8 +163,12 @@ void k_mouse(void *arg UNUSED)
   while (1)
   {
     enum intr_status old_status = intr_disable();
-    if (!ioq_empty(&mouse_buf))
-      data = ioq_getchar(&mouse_buf);
+    if (!fifo8_empty(&mouse_buf))
+      data = fifo8_get(&mouse_buf);
+
+    //ioqueue的代替
+    // if (!ioq_empty(&mouse_buf))
+      // data = ioq_getchar(&mouse_buf);
     intr_set_status(old_status);
 
     if (mouse_decode(&mdec,data) != 0)
@@ -281,3 +279,31 @@ static int mouse_decode(struct MOUSE_DEC *mdec,unsigned char data)
   }
   return -1;
 }
+
+/*鼠标中断*/
+static void intr_mouse_handler()
+{
+  //鼠标中断debug测试
+  // struct BOOT_INFO *bootinfo = (struct BOOT_INFO*)(0xc0000ff0);
+  // boxfill8(bootinfo->vram,bootinfo->scrnx,COL8_000000,0,0,32*8-1,15);
+  // putfont8_str(bootinfo->vram,bootinfo->scrnx,0,0,COL8_ffff00,"IRQ 0x2c PS/2 mouse");
+
+  //直接发送结束中断: 在kernel/kernel.s进入中断的汇编就已经发送了,不需要在对8259A再发送一次
+  // outb(PIC_M_DATA,);
+  // outb();
+
+  /*2021-6-11继续: 在屏幕中央打印接受到的数据(debug用,目前看起来是不需要了)*/
+  uint8_t data = inb(PORT_KEYDAT);
+  // boxfill8((uint8_t *)0xc00a0000,320,14/2,160,100,160+24,100+16);
+  // putfont8_hex((uint8_t *)0xc00a0000,320,160,100,0,data);
+
+  if (!fifo8_full(&mouse_buf))
+    fifo8_put(&mouse_buf,data);
+  //上面用FIFO代替掉了ioqueue, ioqueue速度实在是太慢了
+  /*if (!ioq_full(&mouse_buf))
+  {
+    ioq_putchar(&mouse_buf,data);
+  }
+  */
+}
+

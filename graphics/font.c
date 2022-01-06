@@ -65,3 +65,11 @@ void putfont8_int(uint8_t *vram,int xsize,int x,int y,uint8_t color,uint32_t num
   putfont8_str(vram,xsize,x,y,color,ans);
 }
 
+void putfont8_hex(uint8_t *vram,int xsize,int x,int y,uint8_t color,uint32_t num)
+{
+  char ans[16];
+  memset(ans,0,16);
+
+  sprintf(ans,"%x",num);
+  putfont8_str(vram,xsize,x,y,color,ans);
+}

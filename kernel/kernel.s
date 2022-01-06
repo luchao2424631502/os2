@@ -19,6 +19,7 @@ intr%1entry:
   pushad
 
   ;向8259A发送EOI
+  ;通知8259A主片和从片中断处理完毕
   mov al,0x20 
   out 0xa0,al
   out 0x20,al

@@ -18,7 +18,7 @@
 /*向0x60端口写入0xf4,鼠标被激活,立刻向cpu发出中断*/
 #define MOUSECMD_ENABLE 0xf4
 
-extern struct ioqueue mouse_buf;
+extern struct FIFO8 mouse_buf;
 extern int mx,my;
 extern char mcursor[256];
 
