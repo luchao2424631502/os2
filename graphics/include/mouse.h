@@ -2,6 +2,7 @@
 #define __GRAPHICS_MOUSE_H  
 
 #include "stdint.h"
+#include "sheet.h"
 
 /*鼠标中芯片的端口*/
 #define PORT_KEYDAT 0x0060
@@ -22,13 +23,12 @@ extern struct FIFO8 mouse_buf;
 extern int mx,my;
 extern char mcursor[256];
 
-void init_mouse_cursor8(char *,char );
+void init_mouse_cursor8(unsigned char *,unsigned char );
 void putblock8(uint8_t *,int ,int ,int ,int ,int ,char *,int );
 
 /*注册ps/2鼠标中断*/
 void mouse_init();
 
-void k_mouse(void* UNUSED);
+void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht);
 
 #endif
-

@@ -4,13 +4,13 @@
 #include "interrupt.h"
 #include "graphics.h"
 #include "font.h"
-#include "paint.h"
 #include "io.h"
 #include "stdio.h"
 #include "vramio.h"
 #include "ioqueue.h"
 #include "debug.h"
 #include "string.h"
+#include "sheet.h"
 
 //接收鼠标传来的数据
 // struct ioqueue mouse_buf;
@@ -33,7 +33,7 @@ static void enable_mouse();
 static int mouse_decode(struct MOUSE_DEC *,unsigned char );
 
 //鼠标指针大小是 16*16,生成的mouse数组每个char表示的是像素颜色
-void init_mouse_cursor8(char *mouse,char bc)
+void init_mouse_cursor8(unsigned char *mouse,unsigned char bc)
 {
   static char cursor[16][16] = {
 		"**************..",
@@ -176,10 +176,8 @@ static void intr_mouse_handler()
 
 
 /*内核线程:用来处理鼠标中断发出来的数据*/
-void k_mouse(void *arg UNUSED)
+void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht_mouse)
 {
-  putfont8_str((uint8_t *)VGA_START_V,320,160,0,13,"I'm k_mouse");
-
   struct MOUSE_DEC mdec;
   mdec.phase = 0;
 
@@ -201,7 +199,8 @@ void k_mouse(void *arg UNUSED)
 
     if (mouse_decode(&mdec,data) != 0)
     {
-      /*不需要再显示解析出来的鼠标数据
+      /*
+      //不需要再显示解析出来的鼠标数据
       char buf[50];
       memset(buf,0,50);
       sprintf(buf,"[lcr %d %d]",mdec.x,mdec.y);
@@ -223,7 +222,8 @@ void k_mouse(void *arg UNUSED)
       */
 
       //在绘制新鼠标前,要把旧鼠标去掉) (16x16鼠标像素的底色
-      boxfill8((uint8_t *)VGA_START_V,320,14,mx,my,mx+15,my+15);
+      // boxfill8((uint8_t *)VGA_START_V,320,14,mx,my,mx+15,my+15);
+      // boxfill8(buf_mouse,320,14,mx,my,mx+15,my+15);
       
       //计算新的鼠标坐标
       mx += mdec.x;
@@ -256,7 +256,8 @@ void k_mouse(void *arg UNUSED)
       */
       
       //显示鼠标
-      putblock8((uint8_t *)VGA_START_V,320,16,16,mx,my,mcursor,16);
+      // putblock8(buf_mouse,320,16,16,mx,my,mcursor,16);
+      sheet_slide(ctl,sht_mouse,mx,my); //包含sheet_refresh;
     }
   }
 

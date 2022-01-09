@@ -87,9 +87,21 @@ outb(0x60,0xf4);
 
    替换malloc_page,用sys_malloc()来申请内存
 
-3. 
+### 2022-1-9:添加图层
 
-4. 
+1. 启动图层,添加鼠标和桌面两个图层
+
+2. 因为图层的原因,又把解析鼠标数据保持和书上大致一样,(不单独开一个内核线程解析数据).将解析鼠标数据的操作放到kernel_graphics线程中,
+
+   #### 鼠标绘图逻辑:
+
+   1. decode更新鼠标的新坐标后,直接修改sht_mouse的坐标就行了,然后sheet_refresh(),合并成了一个sheet_slide()操作
+
+3. 替换所有原始操作vram,换成填充sheet,然后刷新sheet
+
+4. 删除 graphics/include/paint.h graphics/paint.c
+
+   
 
 ## 常用的源文件
 

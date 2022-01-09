@@ -28,7 +28,6 @@
 #include "font.h"
 #include "vramio.h"
 #include "mouse.h"
-#include "paint.h"
 #include "sheet.h"
 
 /*用户进程*/
@@ -53,10 +52,12 @@ int main()
   
   //6-8:添加 graphics 的内核线程来测试图形操作
   thread_start("k_graphics",31,kernel_graphics,NULL);
-  thread_start("k_g_mouse",1,k_mouse,NULL);
+  // thread_start("k_g_mouse",1,k_mouse,NULL);
 
   //测试是否能分配(这线程会退出,内存会回收,下次在graphics线程中测试
-  sheetctl_init((unsigned char *)VGA_START_V,Width_320,Length_200);
+  // sheetctl_init((unsigned char *)VGA_START_V,Width_320,Length_200);
+
+
   /*
   uint32_t file_size = 5653;
   uint32_t sec_cnt = DIV_ROUND_UP(file_size,512);

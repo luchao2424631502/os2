@@ -5,13 +5,17 @@
 #include "debug.h"
 #include "global.h"
 #include "font.h"
-#include "paint.h"
 #include "mouse.h"
+#include "memory.h"
 
 #include "print.h"
 #include "vramio.h"
 #include "stdio.h"
 #include "sheet.h"
+
+#define SCREEN_BUF_SIZE 320*200
+#define MOUSE_WIDTH 16
+#define MOUSE_HEIGHT 16
 
 extern uint8_t _binary_graphics_1_in_start[];
 extern uint8_t _binary_graphics_1_in_end[];
@@ -19,8 +23,8 @@ extern uint8_t _binary_graphics_1_in_size[];
 
 static void init_palette();
 static void set_palette(int,int,unsigned char *);
-static void desktop_init();
 static void screen_init();
+static void boxfill8(unsigned char *vram,int xsize,unsigned char color,int x0,int y0,int x1,int y1);
 
 /*k_graphics内核线程*/
 void kernel_graphics(void *arg UNUSED)
@@ -36,8 +40,45 @@ void graphics_init()
   /*初始化调色板*/
   init_palette();
 
+  /*2022-1-9: 添加图层*/
+  struct SHEETCTL* ctl;
+  struct SHEET *sht_back,*sht_mouse;
+  unsigned char *buf_back,buf_mouse[256];
+  
+  //给桌面的图层分配buffer
+  buf_back = (unsigned char *)sys_malloc(SCREEN_BUF_SIZE);
+  
+  ctl = sheetctl_init((unsigned char *)VGA_START_V,Width_320,Length_200);
+  sht_back = sheet_alloc(ctl);
+  sht_mouse = sheet_alloc(ctl);
+  sheet_setbuf(sht_back,buf_back,Width_320,Length_200,-1);  //col_inv=-1的透明色号可能表示不透明
+  sheet_setbuf(sht_mouse,buf_mouse,MOUSE_WIDTH,MOUSE_HEIGHT,99);  //col_inv=99的透明色号 暂时不知道是什么意思
+
+  
   /*桌面基本元素初始化*/
-  desktop_init();
+  struct BOOT_INFO *boot_info = (struct BOOT_INFO*)0xc0000ff0;
+  screen_init(buf_back,boot_info->scrnx,boot_info->scrny);
+  sheet_slide(ctl,sht_back,0,0);  //back桌面原点重定位
+
+  /*根据鼠标图像得到 像素颜色数组*/
+  init_mouse_cursor8(buf_mouse,99);
+  mx = (320-16)/2;
+  my = (200-28-16)/2;
+  sheet_slide(ctl,sht_mouse,mx,my);
+  sheet_updown(ctl,sht_back,0);
+  sheet_updown(ctl,sht_mouse,1);
+
+  /*
+  // 图层测试(打印鼠标坐标)
+  char buf[64];
+  sprintf(buf,"(%d,%d)",mx,my);
+  // putfont8_str(buf_back,320,0,0,7,buf);
+  boxfill8(buf_back,320,0,0,0,100,20);
+  sheet_refresh(ctl);
+  */
+
+  /*要初始化鼠标我在init.c中做了*/
+  k_mouse(ctl,sht_mouse);
 }
 
 /*初始化调色板,支持16种颜色*/
@@ -67,44 +108,12 @@ static void init_palette()
   set_palette(0,15,table_rgb);
 }
 
-/*设置vga的16个寄存器(调色板)*/
-static void set_palette(int start,int end,unsigned char *rgb)
-{
-  //关中断
-  enum intr_status old_status = intr_disable();
-  
-  //连续设置(调色板)寄存器
-  outb(0x03c8,start);
-  for (int i=start; i<=end; i++)
-  {
-    outb(0x03c9,rgb[0]/4);
-    outb(0x03c9,rgb[1]/4);
-    outb(0x03c9,rgb[2]/4);
-    rgb += 3;
-  }
-
-  //恢复中断
-  intr_set_status(old_status);
-}
-
-/*桌面初始化*/
-static void desktop_init()
-{
-  /*拿到loader.s中填写的信息(填写成功)
-   * */
-  struct BOOT_INFO *boot_info = (struct BOOT_INFO*)0xc0000ff0;
-  screen_init(boot_info->vram,boot_info->scrnx,boot_info->scrny);
-}
-
 static void screen_init(uint8_t *vram_,uint32_t x,uint32_t y)
 {
   uint32_t xsize = x;
   uint32_t ysize = y;
   uint8_t *vram = vram_;
   
-  // uint32_t xsize = Width_320;
-  // uint32_t ysize = Length_200;
-  // uint8_t *vram = (uint8_t *)VGA_START_V;
 
   /*画横线和填充dock任务栏(矩形)*/
   boxfill8(vram,xsize,COL8_008484,0     ,0       ,xsize-1  ,ysize-29);//亮蓝填充上部分
@@ -131,21 +140,37 @@ static void screen_init(uint8_t *vram_,uint32_t x,uint32_t y)
   // putfont8(vram,xsize,8,0,COL8_840000,'B');
   // putfont8(vram,xsize,16,0,COL8_840000,'C');
   // putfont8(vram,xsize,24,0,COL8_000000,'1');
-  
   // putfont8_str(vram,xsize,0,16,7,"");
   // putfont8_str(vram,xsize,16,16,3,"llc OS");
 
 
-  /*显示鼠标*/
-  /*根据鼠标图像得到 像素颜色数组*/
-  init_mouse_cursor8(mcursor,BACKGROUND_COLOR);
-  /*计算画面中心坐标*/
-  mx = (320-16)/2;
-  my = (200-28-16)/2;
-  /*将鼠标显示出来*/
-  putblock8(vram,xsize,16,16,mx,my,mcursor,16);
-  // char buf[64];
-  // sprintf(buf,"(%d,%d)",mx,my);
-  // putfont8_str(vram,xsize,0,0,7,buf);
 }
 
+/*设置vga的16个寄存器(调色板)*/
+static void set_palette(int start,int end,unsigned char *rgb)
+{
+  //关中断
+  enum intr_status old_status = intr_disable();
+  
+  //连续设置(调色板)寄存器
+  outb(0x03c8,start);
+  for (int i=start; i<=end; i++)
+  {
+    outb(0x03c9,rgb[0]/4);
+    outb(0x03c9,rgb[1]/4);
+    outb(0x03c9,rgb[2]/4);
+    rgb += 3;
+  }
+
+  //恢复中断
+  intr_set_status(old_status);
+}
+
+//
+static void boxfill8(unsigned char *vram,int xsize,unsigned char color,int x0,int y0,int x1,int y1)
+{
+  for (int y=y0; y<=y1; y++)
+    for (int x=x0; x<=x1; x++)
+      vram[y * xsize + x] = color;
+  return ;
+}

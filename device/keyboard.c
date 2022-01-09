@@ -6,7 +6,6 @@
 #include "ioqueue.h"
 
 #include "graphics.h"
-#include "paint.h"
 #include "color256.h"
 #include "font.h"
 #include "mouse.h"
