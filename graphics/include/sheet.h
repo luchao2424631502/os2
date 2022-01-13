@@ -33,7 +33,8 @@ struct SHEETCTL *sheetctl_init(unsigned char *vram,int xsize,int ysize);
 struct SHEET *sheet_alloc(struct SHEETCTL *ctl);
 void sheet_updown(struct SHEETCTL *ctl,struct SHEET *sht,int height);
 void sheet_setbuf(struct SHEET *sht,unsigned char *buf,int xsize,int ysize,int col_inv);
-void sheet_refresh(struct SHEETCTL *ctl);
+void sheet_refresh(struct SHEETCTL *ctl,struct SHEET *sht,int bx0,int by0,int bx1,int by1);
+void sheet_refreshsub(struct SHEETCTL *ctl,int vx0,int vy0,int vx1,int vy1);
 void sheet_slide(struct SHEETCTL *ctl,struct SHEET *sht,int vx0,int vy0);
 void sheet_free(struct SHEETCTL *ctl,struct SHEET *sht);
 #endif

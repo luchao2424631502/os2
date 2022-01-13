@@ -24,7 +24,6 @@ extern uint8_t _binary_graphics_1_in_size[];
 static void init_palette();
 static void set_palette(int,int,unsigned char *);
 static void screen_init();
-static void boxfill8(unsigned char *vram,int xsize,unsigned char color,int x0,int y0,int x1,int y1);
 
 /*k_graphics内核线程*/
 void kernel_graphics(void *arg UNUSED)
@@ -68,17 +67,8 @@ void graphics_init()
   sheet_updown(ctl,sht_back,0);
   sheet_updown(ctl,sht_mouse,1);
 
-  /*
-  // 图层测试(打印鼠标坐标)
-  char buf[64];
-  sprintf(buf,"(%d,%d)",mx,my);
-  // putfont8_str(buf_back,320,0,0,7,buf);
-  boxfill8(buf_back,320,0,0,0,100,20);
-  sheet_refresh(ctl);
-  */
-
   /*要初始化鼠标我在init.c中做了*/
-  k_mouse(ctl,sht_mouse);
+  k_mouse(ctl,sht_mouse,sht_back,buf_back);
 }
 
 /*初始化调色板,支持16种颜色*/
@@ -167,7 +157,7 @@ static void set_palette(int start,int end,unsigned char *rgb)
 }
 
 //
-static void boxfill8(unsigned char *vram,int xsize,unsigned char color,int x0,int y0,int x1,int y1)
+void boxfill8(unsigned char *vram,int xsize,unsigned char color,int x0,int y0,int x1,int y1)
 {
   for (int y=y0; y<=y1; y++)
     for (int x=x0; x<=x1; x++)

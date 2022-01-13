@@ -104,8 +104,9 @@ void sheet_updown(struct SHEETCTL *ctl,struct SHEET *sht,int height)
       }
       ctl->top--;
     }
-    //移动完后,刷新整个屏幕
-    sheet_refresh(ctl);
+    //变化完高度(区域是不变的),刷新指定区域的所有图层
+    sheet_refreshsub(ctl,sht->vx0,sht->vy0,
+                      sht->vx0+sht->bxsize,sht->vy0+sht->bysize);
   }
   //上移
   else if (height > old)
@@ -129,55 +130,90 @@ void sheet_updown(struct SHEETCTL *ctl,struct SHEET *sht,int height)
       ctl->sheets[height] = sht;
       ctl->top++;
     }
-    sheet_refresh(ctl);
+    sheet_refreshsub(ctl,sht->vx0,sht->vy0,
+                      sht->vx0+sht->bxsize,sht->vy0+sht->bysize);
   }
   return ;
 }
 
 /*
- * (bx,by):相对于buf的坐标
- * (vx,vy):相对于显存vram的坐标
+ * (bx0,by0)
+ * (bx1,by1)
+ * 给出的坐标是相对的,刷新对于这个图层的相对区域
+ * 
  * */
-void sheet_refresh(struct SHEETCTL *ctl)
+void sheet_refresh(struct SHEETCTL *ctl,struct SHEET *sht,int bx0,int by0,int bx1,int by1)
 {
-  unsigned char *buf,*vram = ctl->vram;
+  if (sht->height >= 0)
+  {
+    sheet_refreshsub(ctl,sht->vx0+bx0,sht->vy0+by0,
+                  sht->vx0+bx1,sht->vy0+by1);
+  }
+  return ;
+}
+
+/*
+ * (vx0,vy0):屏幕上的左上坐标
+ * (vx1,vy1):屏幕上的右下坐标
+ * 给出的屏幕的两个坐标是绝对的,是要刷新这个绝对区域的所有图层
+ * */
+void sheet_refreshsub(struct SHEETCTL *ctl,int vx0,int vy0,int vx1,int vy1)
+{
+  unsigned char *buf;
+  unsigned char *vram = ctl->vram;
   struct SHEET *sht;
-  //从下图层到上图层
-  for (int h = 0; h<=ctl->top; h++)
+  //对于每个图层来说 根据绝对区域裁剪出对于此图层的相对区域,然后拿到图层的像素,然后刷新
+  for (int h=0; h<=ctl->top; h++)
   {
     sht = ctl->sheets[h];
     buf = sht->buf;
-    int vx,vy;
-    //从sheet上到下
-    for (int by = 0; by<sht->bysize; by++)
+
+    //想要刷新的范围的绝对x坐标 - 图层的绝对x坐标 = 对于图层来说的相对bx坐标
+    int bx0 = vx0 - sht->vx0;
+    int by0 = vy0 - sht->vy0;
+    int bx1 = vx1 - sht->vx0;
+    int by1 = vy1 - sht->vy0;
+
+    //可能要刷新的范围(有部分)在这个图层的外部,
+    //在外部的就不用刷新了
+    if (bx0 < 0) { bx0 = 0; }
+    if (by0 < 0) { by0 = 0; }
+    if (bx1 > sht->bxsize) { bx1 = sht->bxsize; }
+    if (by1 > sht->bysize) { by1 = sht->bysize; }
+
+    //只遍历要刷新的相对区域
+    for (int by = by0; by<by1; by++)
     {
-      //得到在vram中当前的y坐标
-      vy = sht->vy0 + by;
-      //固定了y,然后扫描y的这一行
-      for (int bx = 0; bx<sht->bxsize; bx++)
+      int vy = sht->vy0 + by;
+      for (int bx = bx0; bx<bx1; bx++)
       {
-        //得到在vram中当前的x坐标
-        vx = sht->vx0 + bx;
-        //首先通过相对坐标bx,by拿到坐标对应的像素
-        unsigned char c = buf[by * sht->bxsize + bx];
-        //除col_inv颜色外的其它像素都显示
-        if (c != sht->col_inv)
-          vram[vy * ctl->xsize + vx] = c;
+        int vx = sht->vx0 + bx;
+        unsigned char ch = buf[by*sht->bxsize + bx];
+        if (ch != sht->col_inv)
+        {
+          vram[vy*ctl->xsize + vx] = ch;
+        }
       }
     }
   }
-  return ;
 }
 
 //移动图层(改变图层的原点的坐标就行)
 void sheet_slide(struct SHEETCTL *ctl,struct SHEET *sht,int vx0,int vy0)
 {
+  int old_vx0 = sht->vx0;
+  int old_vy0 = sht->vy0;
   sht->vx0 = vx0;
   sht->vy0 = vy0;
   //正在显示则移动图层后要重新绘制
   if (sht->height >= 0)
   {
-    sheet_refresh(ctl);
+    //刷新原来的图层
+    sheet_refreshsub(ctl,old_vx0,old_vy0,
+                      old_vx0+sht->bxsize,old_vy0+sht->bysize);
+    //刷新移动后的图层
+    sheet_refreshsub(ctl,vx0,vy0,
+                      vx0+sht->bxsize,vy0+sht->bysize);
   }
   return ;
 }

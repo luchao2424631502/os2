@@ -13,11 +13,11 @@ ata0-slave: type=disk, path="hd80M.img", mode=flat, cylinders=162, heads=16, spt
 log: tmp/bochsout.txt
 
 #2021/4/25 开启ps/2鼠标支持
-mouse: enabled=1
+mouse: enabled=1, type=imps2
 #keyboard_mapping: enabled=1, map=/usr/local/share/bochs/keymaps/x11-pc-us.map
 keyboard: keymap=/usr/share/bochs/keymaps/x11-pc-us.map
 
-display_library: sdl
+#display_library: sdl
 #9MHz
-#cpu: count=2,ips=20000000
-#vga: extension=none,update_freq=60,realtime=1
+cpu: count=1,ips=20000000
+vga: extension=none,update_freq=60,realtime=1

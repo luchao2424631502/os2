@@ -19,6 +19,16 @@
 /*向0x60端口写入0xf4,鼠标被激活,立刻向cpu发出中断*/
 #define MOUSECMD_ENABLE 0xf4
 
+/*mouse_sample_rate:鼠标采样率*/
+#define SAMPLE_RATE_10    0x0a
+#define SAMPLE_RATE_20    0x14
+#define SAMPLE_RATE_40    0x28
+#define SAMPLE_RATE_80    0x50
+#define SAMPLE_RATE_DEFAULT SAMPLE_RATE_80
+#define SAMPLE_RATE_100   0x64
+#define SAMPLE_RATE_200   0xC8
+
+
 extern struct FIFO8 mouse_buf;
 extern int mx,my;
 extern char mcursor[256];
@@ -29,6 +39,7 @@ void putblock8(uint8_t *,int ,int ,int ,int ,int ,char *,int );
 /*注册ps/2鼠标中断*/
 void mouse_init();
 
-void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht);
+void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht_mouse,
+            struct SHEET *sht_back,unsigned char *buf_back);
 
 #endif

@@ -30,6 +30,7 @@ static void intr_mouse_handler();
 static void mouse_chip_init();
 static void wait_keysta_ready();
 static void enable_mouse();
+static void enable_mouse2();
 static int mouse_decode(struct MOUSE_DEC *,unsigned char );
 
 //鼠标指针大小是 16*16,生成的mouse数组每个char表示的是像素颜色
@@ -95,11 +96,16 @@ void mouse_init()
 
   //首先对鼠标中的芯片进行初始化
   mouse_chip_init();
+  enable_mouse2();
 
   put_str("[mouse_init] done\n");
 }
 
-//等待输入缓冲区
+/*
+ * 判断intel 8042芯片的 输入缓冲区寄存器是否满 
+ * 向8042发送命令需要保证8042的输入缓冲区为空
+ * 读取
+*/
 static void wait_keysta_ready()
 {
   /*读取端口0x64检测鼠标电路的状态,如果第2bit=0(intel8042的输入缓冲区为空),则可以对8042发送数据
@@ -120,23 +126,11 @@ static void mouse_chip_init()
   wait_keysta_ready();
   //向0x60端口(输入缓冲区) 发送0x47: 对应控制寄存器的每一位:1.enable鼠标中断 2.enable键盘中断 3.第二套扫描码转换为第一套扫描码
   outb(PORT_KEYDAT,KBC_MODE);
-
-  enable_mouse();
 }
 
+/*0xf4 Enable packet streaming 开启鼠标(鼠标开始向发出中断请求)*/
 static void enable_mouse()
 {
-  /*尝试设置鼠标的采样率
-  wait_keysta_ready();
-  outb(PORT_KEYCMD,0xd4);
-  wait_keysta_ready();
-  outb(PORT_KEYDAT,0xf3);
-
-  wait_keysta_ready();
-  outb(PORT_KEYCMD,0xd4);
-  wait_keysta_ready();
-  outb(PORT_KEYDAT,0x14);
-  */
 
   wait_keysta_ready();
   /*向鼠标发送数据前,先向控制寄存器0x64发送0xd4,
@@ -145,6 +139,25 @@ static void enable_mouse()
   wait_keysta_ready();
   /*向0x60端口写入0xf4,鼠标被激活,立刻向cpu发出中断*/
   outb(PORT_KEYDAT,MOUSECMD_ENABLE);
+}
+
+static void enable_mouse2()
+{
+  wait_keysta_ready();
+  outb(PORT_KEYCMD,0xd4);
+
+  wait_keysta_ready();
+  //设置鼠标采样率
+  outb(PORT_KEYDAT,0xf3);
+
+  wait_keysta_ready();
+  outb(PORT_KEYCMD,0xd4);
+
+  wait_keysta_ready();
+  //采样率的大小
+  outb(PORT_KEYDAT,SAMPLE_RATE_10);
+  
+  enable_mouse();
 }
 
 /*鼠标中断*/
@@ -176,7 +189,8 @@ static void intr_mouse_handler()
 
 
 /*内核线程:用来处理鼠标中断发出来的数据*/
-void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht_mouse)
+void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht_mouse,
+            struct SHEET *sht_back,unsigned char *buf_back)
 {
   struct MOUSE_DEC mdec;
   mdec.phase = 0;
@@ -197,9 +211,8 @@ void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht_mouse)
     */
     intr_set_status(old_status);
 
-    if (mouse_decode(&mdec,data) != 0)
+    if (mouse_decode(&mdec,data) == 1)
     {
-      /*
       //不需要再显示解析出来的鼠标数据
       char buf[50];
       memset(buf,0,50);
@@ -217,9 +230,9 @@ void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht_mouse)
         buf[2] = 'C';
       }
       // 覆盖已经写入的字体
-      boxfill8((uint8_t *)VGA_START_V,320,14,32,16,32+15*8 - 1,31);
-      putfont8_str((uint8_t *)VGA_START_V,320,32,16,0,buf);
-      */
+      boxfill8(buf_back,320,14,32,16,32+15*8 - 1,31);
+      putfont8_str(buf_back,320,32,16,0,buf);
+      sheet_refresh(ctl,sht_back,0,0,32+15*8,32);
 
       //在绘制新鼠标前,要把旧鼠标去掉) (16x16鼠标像素的底色
       // boxfill8((uint8_t *)VGA_START_V,320,14,mx,my,mx+15,my+15);
@@ -246,14 +259,14 @@ void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht_mouse)
         my = 200 - 16;
       }
 
-      /*显示当前坐标(目前不需要)
+      //显示当前坐标(目前不需要)
       memset(buf,0,sizeof(buf));
       sprintf(buf,"(%d,%d)",mx,my);
       //隐藏坐标(填充坐标区域的底色)
-      boxfill8((uint8_t *)VGA_START_V,320,14,0,0,79,15);
+      boxfill8(buf_back,320,14,0,0,79,15);
       //显示坐标(在此区域打印坐标)
-      putfont8_str((uint8_t *)VGA_START_V,320,0,0,7,buf);
-      */
+      putfont8_str(buf_back,320,0,0,7,buf);
+      sheet_refresh(ctl,sht_back,0,0,79,15);
       
       //显示鼠标
       // putblock8(buf_mouse,320,16,16,mx,my,mcursor,16);

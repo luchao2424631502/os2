@@ -34,4 +34,5 @@ struct BOOT_INFO
 // 4/22添加图形debug函数
 void graphics_init();
 void kernel_graphics(void *UNUSED);
+void boxfill8(unsigned char *vram,int xsize,unsigned char color,int x0,int y0,int x1,int y1);
 #endif
