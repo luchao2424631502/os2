@@ -12,6 +12,7 @@
 #include "vramio.h"
 #include "stdio.h"
 #include "sheet.h"
+#include "color256.h"
 
 #define SCREEN_BUF_SIZE 320*200
 #define MOUSE_WIDTH 16
@@ -24,6 +25,69 @@ extern uint8_t _binary_graphics_1_in_size[];
 static void init_palette();
 static void set_palette(int,int,unsigned char *);
 static void screen_init();
+
+/*
+ * 在传入的buffer中制作
+ * 1. 一个xsize * ysize大小的窗口,
+ * 2. 填充标题栏字符串()
+ * */
+void make_window8(unsigned char *buf,int xsize,int ysize,char *title)
+{
+  static char closebtn[14][16] = {
+    "OOOOOOOOOOOOOOO@",
+    "OQQQQQQQQQQQQQ$@",
+    "OQQQQQQQQQQQQQ$@",
+    "OQQQ@@QQQQ@@QQ$@",
+    "OQQQQ@@QQ@@QQQ$@",
+    "OQQQQQ@@@@QQQQ$@",
+    "OQQQQQQ@@QQQQQ$@",
+    "OQQQQQ@@@@QQQQ$@",
+    "OQQQQ@@QQ@@QQQ$@",
+    "OQQQ@@QQQQ@@QQ$@",
+    "OQQQQQQQQQQQQQ$@",
+    "OQQQQQQQQQQQQQ$@",
+    "O$$$$$$$$$$$$$$@",
+    "@@@@@@@@@@@@@@@@"
+  };
+
+
+  boxfill8(buf, xsize, COL8_c6c6c6, 0,  0,  xsize-1,  0);//最上亮灰线
+  boxfill8(buf, xsize, COL8_ffffff, 1,  1,  xsize-2,  1);//第2上的白线
+  boxfill8(buf, xsize, COL8_c6c6c6, 0,  0,  0,  ysize-1);//最左亮灰线
+  boxfill8(buf, xsize, COL8_ffffff, 1,  1,  1,  ysize-1);//第2左的白线
+  boxfill8(buf, xsize, COL8_848484, xsize-2,  1,  xsize-2,  ysize-2);//第二右暗灰线
+  boxfill8(buf, xsize, COL8_000000, xsize-1,  0,  xsize-1,  ysize-1);//最右黑线
+  boxfill8(buf, xsize, COL8_c6c6c6, 2,  2,  xsize-3,  ysize-3);//亮灰做窗口的背景
+  boxfill8(buf, xsize, COL8_000084, 3,  3,  xsize-4,  20);//暗蓝做窗口上的标题栏
+  boxfill8(buf, xsize, COL8_848484, 1,  ysize-2,  xsize-2,  ysize-2);//暗灰做最下倒数第2条暗灰线
+  boxfill8(buf, xsize, COL8_000000, 0,  ysize-1,  xsize-1,  ysize-1);//黑色做最下的黑线
+  //标题栏填充白色标题
+  putfont8_str(buf,xsize,24,4,COL8_ffffff,title);
+
+  //在标题栏最右边 画出来删除button
+  for (int y=0; y<14; y++)
+  {
+    for (int x=0; x<16; x++)
+    {
+      unsigned char ch = closebtn[y][x];
+      if (ch == '@')//填充黑色
+      {
+        ch = COL8_000000;
+      }
+      else if (ch == 'Q')//亮灰背景
+      {
+        ch = COL8_c6c6c6;
+      }
+      else if (ch == 'O')//最左的白色的线
+      {
+        ch = COL8_ffffff;
+      }
+      //X btn的按钮从(xsize-21,5*xsize)点开始印制
+      buf[(5+y)*xsize + (xsize-21+x)] = ch;
+    }
+  }
+  return ;
+}
 
 /*k_graphics内核线程*/
 void kernel_graphics(void *arg UNUSED)
@@ -41,34 +105,49 @@ void graphics_init()
 
   /*2022-1-9: 添加图层*/
   struct SHEETCTL* ctl;
-  struct SHEET *sht_back,*sht_mouse;
-  unsigned char *buf_back,buf_mouse[256];
+  struct SHEET *sht_back,*sht_mouse,*sht_win;
+  unsigned char *buf_back,buf_mouse[256],*buf_win;
   
   //给桌面的图层分配buffer
   buf_back = (unsigned char *)sys_malloc(SCREEN_BUF_SIZE);
+  //给测试窗口暂时分配buffer
+  buf_win = (unsigned char *)sys_malloc(160*52);
   
   ctl = sheetctl_init((unsigned char *)VGA_START_V,Width_320,Length_200);
   sht_back = sheet_alloc(ctl);
   sht_mouse = sheet_alloc(ctl);
+  sht_win = sheet_alloc(ctl);
+
   sheet_setbuf(sht_back,buf_back,Width_320,Length_200,-1);  //col_inv=-1的透明色号可能表示不透明
   sheet_setbuf(sht_mouse,buf_mouse,MOUSE_WIDTH,MOUSE_HEIGHT,99);  //col_inv=99的透明色号 暂时不知道是什么意思
+  sheet_setbuf(sht_win,buf_win,160,52,-1);//col_inv=-1表示没有透明色(暂时不知道什么意思)
 
   
   /*桌面基本元素初始化*/
   struct BOOT_INFO *boot_info = (struct BOOT_INFO*)0xc0000ff0;
   screen_init(buf_back,boot_info->scrnx,boot_info->scrny);
-  sheet_slide(ctl,sht_back,0,0);  //back桌面原点重定位
+  {
+    //窗口测试
+    make_window8(buf_win,160,52,"Counter");
+
+    // putfont8_str(buf_win,160,24,24,COL8_000000,"Welcome to elephant-g OS!");
+    // putfont8_str(buf_win,160,5,24,COL8_000000,"Copyright 2021-2022");
+    // putfont8_str(buf_win,160,5,40,COL8_000000,"elephantOS-Graphics");
+  }
+  sheet_slide(sht_back,0,0);  //back桌面原点重定位
+  sheet_slide(sht_win,80,60); //左上角坐标重定位
 
   /*根据鼠标图像得到 像素颜色数组*/
   init_mouse_cursor8(buf_mouse,99);
   mx = (320-16)/2;
   my = (200-28-16)/2;
-  sheet_slide(ctl,sht_mouse,mx,my);
-  sheet_updown(ctl,sht_back,0);
-  sheet_updown(ctl,sht_mouse,1);
+  sheet_slide(sht_mouse,mx,my);
+  sheet_updown(sht_back,0);
+  sheet_updown(sht_mouse,2);
+  sheet_updown(sht_win,1);
 
   /*要初始化鼠标我在init.c中做了*/
-  k_mouse(ctl,sht_mouse,sht_back,buf_back);
+  k_mouse(sht_mouse,sht_win,buf_win);
 }
 
 /*初始化调色板,支持16种颜色*/
@@ -156,7 +235,11 @@ static void set_palette(int start,int end,unsigned char *rgb)
   intr_set_status(old_status);
 }
 
-//
+/*
+ * vram,xsize
+ * color,
+ * 左上和右下角的坐标
+ * */
 void boxfill8(unsigned char *vram,int xsize,unsigned char color,int x0,int y0,int x1,int y1)
 {
   for (int y=y0; y<=y1; y++)

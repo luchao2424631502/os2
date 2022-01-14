@@ -189,9 +189,10 @@ static void intr_mouse_handler()
 
 
 /*内核线程:用来处理鼠标中断发出来的数据*/
-void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht_mouse,
-            struct SHEET *sht_back,unsigned char *buf_back)
+void k_mouse(struct SHEET *sht_mouse,
+            struct SHEET *sht_win,unsigned char *buf_win)
 {
+
   struct MOUSE_DEC mdec;
   mdec.phase = 0;
 
@@ -201,6 +202,17 @@ void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht_mouse,
 
   while (1)
   {
+    //Counter窗口代码测试
+    {
+      static int count = 0;
+      count++;
+      char tmp[16];
+      sprintf(tmp,"%d",count);
+      boxfill8(buf_win,160,COL8_c6c6c6,40,28,119,43);
+      putfont8_str(buf_win,160,40,28,COL8_000000,tmp);
+      sheet_refresh(sht_win,40,28,120,44);
+    }
+
     enum intr_status old_status = intr_disable();
     if (!fifo8_empty(&mouse_buf))
       data = fifo8_get(&mouse_buf);
@@ -213,6 +225,7 @@ void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht_mouse,
 
     if (mouse_decode(&mdec,data) == 1)
     {
+      /*
       //不需要再显示解析出来的鼠标数据
       char buf[50];
       memset(buf,0,50);
@@ -232,7 +245,8 @@ void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht_mouse,
       // 覆盖已经写入的字体
       boxfill8(buf_back,320,14,32,16,32+15*8 - 1,31);
       putfont8_str(buf_back,320,32,16,0,buf);
-      sheet_refresh(ctl,sht_back,0,0,32+15*8,32);
+      sheet_refresh(sht_back,0,0,32+15*8,32);
+      */
 
       //在绘制新鼠标前,要把旧鼠标去掉) (16x16鼠标像素的底色
       // boxfill8((uint8_t *)VGA_START_V,320,14,mx,my,mx+15,my+15);
@@ -250,15 +264,16 @@ void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht_mouse,
       {
         my = 0;
       }
-      if (mx > 320 - 16)
+      if (mx > 320 - 1)
       {
-        mx = 320-16;
+        mx = 320-1;
       }
-      if (my > 200 - 16)
+      if (my > 200 - 1)
       {
-        my = 200 - 16;
+        my = 200-1;
       }
 
+      /*
       //显示当前坐标(目前不需要)
       memset(buf,0,sizeof(buf));
       sprintf(buf,"(%d,%d)",mx,my);
@@ -266,11 +281,12 @@ void k_mouse(struct SHEETCTL *ctl,struct SHEET *sht_mouse,
       boxfill8(buf_back,320,14,0,0,79,15);
       //显示坐标(在此区域打印坐标)
       putfont8_str(buf_back,320,0,0,7,buf);
-      sheet_refresh(ctl,sht_back,0,0,79,15);
-      
+      sheet_refresh(sht_back,0,0,79,15);
+      */
+
       //显示鼠标
       // putblock8(buf_mouse,320,16,16,mx,my,mcursor,16);
-      sheet_slide(ctl,sht_mouse,mx,my); //包含sheet_refresh;
+      sheet_slide(sht_mouse,mx,my); //包含sheet_refresh;
     }
   }
 

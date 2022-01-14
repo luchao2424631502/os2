@@ -19,5 +19,5 @@ keyboard: keymap=/usr/share/bochs/keymaps/x11-pc-us.map
 
 #display_library: sdl
 #9MHz
-cpu: count=1,ips=20000000
-vga: extension=none,update_freq=60,realtime=1
+#cpu: count=1,ips=20000000
+vga: extension=none,update_freq=30,realtime=1
