@@ -147,7 +147,7 @@ void graphics_init()
   sheet_updown(sht_win,1);
 
   /*要初始化鼠标我在init.c中做了*/
-  k_mouse(sht_mouse,sht_win,buf_win);
+  k_mouse(sht_mouse,sht_win,buf_win,sht_back,buf_back);
 }
 
 /*初始化调色板,支持16种颜色*/

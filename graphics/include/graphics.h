@@ -35,4 +35,20 @@ struct BOOT_INFO
 void graphics_init();
 void kernel_graphics(void *UNUSED);
 void boxfill8(unsigned char *vram,int xsize,unsigned char color,int x0,int y0,int x1,int y1);
+
+
+/* 2022-02-14
+ * 添加graphics下计时工具
+ */
+struct TIMERCTL 
+{
+	unsigned int count;
+	unsigned int timeout;
+	struct FIFO8 *fifo;
+	unsigned char data;
+};
+
+void init_timer_in_pit();
+void intr_timer_handler_in();
+
 #endif

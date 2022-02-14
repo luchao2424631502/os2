@@ -11,6 +11,7 @@
 #include "debug.h"
 #include "string.h"
 #include "sheet.h"
+#include "timer.h"
 
 //接收鼠标传来的数据
 // struct ioqueue mouse_buf;
@@ -187,10 +188,11 @@ static void intr_mouse_handler()
   */
 }
 
-
+extern struct TIMERCTL timerctl;
 /*内核线程:用来处理鼠标中断发出来的数据*/
 void k_mouse(struct SHEET *sht_mouse,
-            struct SHEET *sht_win,unsigned char *buf_win)
+            struct SHEET *sht_win,unsigned char *buf_win,
+						struct SHEET *sht_back,unsigned char *buf_back)
 {
 
   struct MOUSE_DEC mdec;
@@ -204,10 +206,9 @@ void k_mouse(struct SHEET *sht_mouse,
   {
     //Counter窗口代码测试
     {
-      static int count = 0;
-      count++;
       char tmp[16];
-      sprintf(tmp,"%d",count);
+      sprintf(tmp,"%d",timerctl.count);
+
       boxfill8(buf_win,160,COL8_c6c6c6,40,28,119,43);
       putfont8_str(buf_win,160,40,28,COL8_000000,tmp);
       sheet_refresh(sht_win,40,28,120,44);
@@ -221,6 +222,12 @@ void k_mouse(struct SHEET *sht_mouse,
     if (!ioq_empty(&mouse_buf))
       data = ioq_getchar(&mouse_buf);
     */
+		if (!fifo8_empty(timerctl.fifo))
+		{
+			fifo8_get(timerctl.fifo);
+			putfont8_str(buf_back,320,0,64,COL8_000000,"10[sec]");
+			sheet_refresh(sht_back,0,64,56,80);
+		}
     intr_set_status(old_status);
 
     if (mouse_decode(&mdec,data) == 1)

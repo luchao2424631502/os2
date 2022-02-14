@@ -6,7 +6,7 @@
 // void write_mem8(uint32_t addr,uint8_t data);
 
 #define FLAGS_OVERRUN 0x001
-#define FIFO8_BUF_SIZE 512
+#define FIFO8_BUF_SIZE 128
 struct FIFO8
 {
   unsigned char buf[FIFO8_BUF_SIZE];

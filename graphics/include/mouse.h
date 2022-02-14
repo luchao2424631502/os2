@@ -39,7 +39,8 @@ void putblock8(uint8_t *,int ,int ,int ,int ,int ,char *,int );
 /*注册ps/2鼠标中断*/
 void mouse_init();
 
-void k_mouse(struct SHEET *sht_mouse,
-            struct SHEET *sht_back,unsigned char *buf_back);
+void k_mouse(struct SHEET *sht_mouse, struct SHEET *sht_win,
+             unsigned char *buf_win, struct SHEET *sht_back,
+             unsigned char *buf_back);
 
 #endif
