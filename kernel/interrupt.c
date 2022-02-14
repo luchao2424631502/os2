@@ -49,14 +49,14 @@ static void pic_init()
   outb(PIC_S_DATA,0x02); //ICW3: 从片连接到主片的IR2
   outb(PIC_S_DATA,0x01); //ICW4: 正常EOI
 
+	//暂时先关闭所有的中断,等到timer_init在开启需要的中断
+	outb(PIC_M_DATA,0xff);
+	outb(PIC_S_DATA,0xff);
+	
   //打开主片IR0的时钟中断
   // outb(PIC_M_DATA,0xfe);
   // outb(PIC_S_DATA,0xff);
-// <<<<<<< HEAD
-
-  //打开键盘中断
-  //outb(PIC_M_DATA,0xfd);
-  //outb(PIC_S_DATA,0xff);
+  // <<<<<<< HEAD
 
   //同时打开键盘中断和时钟中断,+ps/2鼠标中断
   // outb(PIC_M_DATA,0xfc);
@@ -65,7 +65,7 @@ static void pic_init()
   //测试:打开键盘中断+irq2+鼠标中断
   // outb(PIC_M_DATA,0xf9);
   // outb(PIC_S_DATA,0xef);
-// =======
+  // =======
 
   //同时打开键盘中断和时钟中断
   // outb(PIC_M_DATA,0xfc);
@@ -74,11 +74,18 @@ static void pic_init()
   //键盘+时钟+irq2+硬盘
   // outb(PIC_M_DATA,0xf8);
   // outb(PIC_S_DATA,0xbf);
-// >>>>>>> master
+  // >>>>>>> master
 
-  /*合并后应该开启的中断:时钟+irq2+键盘+鼠标+硬盘*/
-  outb(PIC_M_DATA,0xf8);
-  outb(PIC_S_DATA,0xaf);
+	//合并后应该开启的中断:时钟+irq2+键盘+鼠标+硬盘
+	//outb(PIC_M_DATA,0xf8);
+	//outb(PIC_S_DATA,0xaf);
+
+	/*
+	 *2022-02-14: 因为要设置intel8253定时器芯片,所以暂时先关闭中断,等设置完后在开启时钟中断
+	 *outb(PIC_M_DATA,0xf9);
+	 *outb(PIC_S_DATA,0xaf);
+	 */
+
   put_str("    pic_init done\n");
 }
 

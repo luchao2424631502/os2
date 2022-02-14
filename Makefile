@@ -24,7 +24,7 @@ OBJS       =$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o \
 						$(BUILD_DIR)/exec.o $(BUILD_DIR)/wait_exit.o $(BUILD_DIR)/pipe.o
 GRAPHOBJS	 =$(BUILD_DIR)/graphics.o $(BUILD_DIR)/vramio.o $(BUILD_DIR)/font.o\
 						$(BUILD_DIR)/font_binary.o\
-						$(BUILD_DIR)/mouse.o $(BUILD_DIR)/sheet.o
+						$(BUILD_DIR)/mouse.o $(BUILD_DIR)/sheet.o $(BUILD_DIR)/time.o
 #CFLAGS     =-Wall $(INCLUDE) -c -m32 -fno-builtin -fno-stack-protector -W -Wno-implicit-fallthrough#-Wmissing-prototypes -Wstrict-prototypes
 #Wall 和 W 是警告信息,Wstrict-prototypes:函数声明需要指出参数类型  Wmissing-prototypes:没有预先声明函数旧定义全局函数将警告
 
@@ -159,6 +159,9 @@ $(BUILD_DIR)/mouse.o:graphics/mouse.c
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/sheet.o:graphics/sheet.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/time.o:graphics/time.c
 	$(CC) $(CFLAGS) $< -o $@
 
 #---- 链接所有的目标文件生成OS内存镜像 ----

@@ -1,0 +1,13 @@
+gcc
+%c -Wall -c -m32 -fno-builtin -fno-stack-protector -W -Wno-implicit-fallthrough
+%h
+-Ilib/
+-Ilib/kernel/
+-Ilib/user/
+-Ilib/shell/
+-Ikernel/
+-Idevice/
+-Ithread/
+-Iuserprog/
+-Ifs/
+-Igraphics/include
