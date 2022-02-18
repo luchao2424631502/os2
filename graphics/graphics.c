@@ -98,10 +98,29 @@ void kernel_graphics(void *arg UNUSED)
   while(1);
 }
 
+extern struct FIFO8 timerfifo,timerfifo2,timerfifo3;
+extern struct TIMER *timer,*timer2,*timer3;
 void graphics_init()
 {
   /*初始化调色板*/
   init_palette();
+
+	/*2022-02-18:初始化定时器*/
+	fifo8_init(&timerfifo);
+	timer = timer_alloc();
+	timer_init_g(timer,&timerfifo,1);
+	timer_settime(timer,1000);
+
+	fifo8_init(&timerfifo2);
+	timer2 = timer_alloc();
+	timer_init_g(timer2,&timerfifo2,1);
+	timer_settime(timer2,300);
+	
+	fifo8_init(&timerfifo3);
+	timer3 = timer_alloc();
+	timer_init_g(timer3,&timerfifo3,1);
+	timer_settime(timer3,50);
+
 
   /*2022-1-9: 添加图层*/
   struct SHEETCTL* ctl;

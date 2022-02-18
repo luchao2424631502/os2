@@ -39,16 +39,33 @@ void boxfill8(unsigned char *vram,int xsize,unsigned char color,int x0,int y0,in
 
 /* 2022-02-14
  * 添加graphics下计时工具
+ * 2020-02-17
+ * 修改timer的struct. 用处是作为超时定时器
  */
-struct TIMERCTL 
+struct TIMER 
 {
-	unsigned int count;
-	unsigned int timeout;
+	unsigned int timeout,flags;
 	struct FIFO8 *fifo;
 	unsigned char data;
 };
 
+#define MAX_TIMER 500
+
+struct TIMERCTL 
+{
+	unsigned int count;//由ctl来计总的时间
+	unsigned int next;
+	unsigned int using;//记录当前有几个定时器在工作
+	struct TIMER *timers[MAX_TIMER];
+	struct TIMER timers0[MAX_TIMER];
+};
+
 void init_timer_in_pit();
 void intr_timer_handler_in();
+
+void timer_settime(struct TIMER *timer,unsigned int timeout);
+void timer_init_g(struct TIMER *timer,struct FIFO8 *fifo,unsigned char data);
+void timer_free(struct TIMER *timer);
+struct TIMER *timer_alloc();
 
 #endif

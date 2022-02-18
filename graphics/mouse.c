@@ -189,6 +189,9 @@ static void intr_mouse_handler()
 }
 
 extern struct TIMERCTL timerctl;
+extern struct TIMER *timer,*timer2,*timer3;
+extern struct FIFO8 timerfifo,timerfifo2,timerfifo3;
+
 /*内核线程:用来处理鼠标中断发出来的数据*/
 void k_mouse(struct SHEET *sht_mouse,
             struct SHEET *sht_win,unsigned char *buf_win,
@@ -222,11 +225,35 @@ void k_mouse(struct SHEET *sht_mouse,
     if (!ioq_empty(&mouse_buf))
       data = ioq_getchar(&mouse_buf);
     */
-		if (!fifo8_empty(timerctl.fifo))
+		if (!fifo8_empty(timer->fifo))
 		{
-			fifo8_get(timerctl.fifo);
+			fifo8_get(timer->fifo);
 			putfont8_str(buf_back,320,0,64,COL8_000000,"10[sec]");
 			sheet_refresh(sht_back,0,64,56,80);
+		}
+		else if (!fifo8_empty(timer2->fifo))
+		{
+			fifo8_get(timer2->fifo);
+			putfont8_str(buf_back,320,0,80,COL8_000000,"3[sec]");
+			sheet_refresh(sht_back,0,80,48,96);
+		}
+		else if (!fifo8_empty(timer3->fifo))
+		{
+			unsigned char ret = fifo8_get(timer3->fifo);
+			if (ret)
+			{
+				timer_init_g(timer3,timer3->fifo,0);
+				boxfill8(buf_back,320,COL8_000000,8,96,15,111);
+			}
+			else 
+			{
+				timer_init_g(timer3,timer3->fifo,1);
+				boxfill8(buf_back,320,COL8_008484,8,96,15,111);
+			}
+			/*为什么要重新settime,因为timeout在定时中断中已经消耗完了.*/
+			/*为了不停翻转,所以每次翻转结束后,再次设置*/
+			timer_settime(timer3,50);
+			sheet_refresh(sht_back,8,96,16,112);
 		}
     intr_set_status(old_status);
 
